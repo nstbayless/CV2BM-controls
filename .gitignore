@@ -1,0 +1,6 @@
+*.gb
+cfg.asm
+*.lbl
+*.ips
+*.sn[0-9]
+*.bin
