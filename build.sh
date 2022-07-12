@@ -52,7 +52,8 @@ function build() {
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
     grep "end_bank[0-9]:" $BUILDNAME.lbl
     
-    cp "$BUILDNAME.ips" "$DST"
+    mkdir -p "$DST/$BASEROM"
+    cp "$BUILDNAME.ips" "$DST/$BASEROM"
 }
 
 build us vcancel "VCANCEL: equ 1" "INERTIA: equ 0"
@@ -66,3 +67,5 @@ build jp inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
 build jp inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
 
 cp README.txt "$DST"
+rm *.zip
+7z a ./cv2gb-controls.zip ./cv2gb-controls
