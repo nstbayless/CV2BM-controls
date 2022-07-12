@@ -4,3 +4,4 @@ cfg.asm
 *.ips
 *.sn[0-9]
 *.bin
+cv2gb-controls/
