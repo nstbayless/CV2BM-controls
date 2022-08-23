@@ -148,7 +148,7 @@ if KGBC4EU_LAYOUT
     org $2332
     write_word_cb:
 
-    org $233D
+    org $232F
     entity_set_y_velocity:
 
     org $2336
