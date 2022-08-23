@@ -35,6 +35,7 @@ function build() {
     echo "incbin 'base-$BASEROM.gb'" > cfg.asm
     echo "rom_us: equ 10" >> cfg.asm
     echo "rom_jp: equ 11" >> cfg.asm
+    echo "rom_kgbc4eu: equ 22" >> cfg.asm
     echo "rom_type: equ rom_$BASEROM" >> cfg.asm
     
     while [ $# -gt 0 ]
@@ -50,7 +51,8 @@ function build() {
     $FLIPS -c --ips base-$BASEROM.gb $BUILDNAME.gb $BUILDNAME.ips
     
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
-    grep "end_bank[0-9]:" $BUILDNAME.lbl
+    echo "$DST/$BASEROM $BUILDNAME"
+    grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
     
     mkdir -p "$DST/$BASEROM"
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
@@ -66,6 +68,13 @@ build jp no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0"
 build jp inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
 build jp inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
 
+build kgbc4eu vcancel "VCANCEL: equ 1" "INERTIA: equ 0"
+build kgbc4eu no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0"
+build kgbc4eu inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
+build kgbc4eu inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
+
 cp README.txt "$DST"
 rm *.zip
 7z a ./cv2gb-controls.zip ./cv2gb-controls
+
+exit 0
