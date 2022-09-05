@@ -40,6 +40,10 @@ banksk3: macro
     seek $4000 * (3-1) + $
 endm
 
+banksk4: macro
+    seek $4000 * (4-1) + $
+endm
+
 banksk6: macro
     seek $4000 * (6-1) + $
 endm
@@ -323,6 +327,26 @@ else
         holywater_update:
     endif
     
+    ; cross graphics
+    org $47D0
+    banksk4
+    db $00
+    db $00
+    db $00
+    db $00
+    db $70
+    db $00
+    db $FC
+    db $70
+    db $EF
+    db $5C
+    db $DB
+    db $67
+    db $76
+    db $39
+    db $3F
+    db $0C
+    
 
 endif; ! KGBC4EU_LAYOUT
 
@@ -604,6 +628,13 @@ if SUBWEAPONS
         org $3889
         banksk0 
         call intercept_apply_subweapon
+        
+        org $6F19
+        banksk3
+        ;call intercept_draw_sprite
+        
+        org $6F4D
+        draw_sprite:
     endif
 
     if rom_type == rom_us
@@ -697,12 +728,13 @@ if SUBWEAPONS
         jp entity_unk_3DA0 ; set velocity times direction?
     
     cross_update_move_common:
+        pushhl cross_update_move_common_2
         pushhl mbc_swap_bank_1
         pushhl entity_unk_38b0
         pushhl unk_482f
         pushhl pop_hl_ret
         pushhl unk_49a7
-        call mbc_swap_bank_6
+        jp mbc_swap_bank_6
     
     cross_update_move_common_2:
         call unk_0c52
@@ -830,6 +862,69 @@ if SUBWEAPONS
     
     org $7f80
     banksk3
+    
+    intercept_draw_sprite:
+        cp $0D
+        jr c, jp_draw_sprite
+        cp $10
+        jr nc, jp_draw_sprite
+        push af
+        ld a, $c3
+        cp h
+        jr z, intercept_draw_sprite_subweapon
+        
+        pop af
+    
+    intercept_draw_sprite_other:
+        ; TODO
+        jr jp_draw_sprite
+        
+    pop_and_jp_draw_sprite:
+        pop af
+    jp_draw_sprite:
+        jp draw_sprite
+    
+    intercept_draw_sprite_subweapon:
+        ldai16 $c300
+        dec a
+        jr z, pop_and_jp_draw_sprite
+        pop af
+        
+    draw_cross_sprite:
+        ; change to sprite
+        add a ; double
+        sub (cross_sprite_table-$7F00)-($0E*2)
+        ld h, $7f
+        jp draw_sprite+3
+    
+    cross_sprite_table:
+        dw cross_sprite_0
+        dw cross_sprite_1
+        dw cross_sprite_2
+        dw cross_sprite_1
+        
+    cross_sprite_0:
+        db $02
+        db $f8
+        db $f8
+        db $83
+        db $20
+        db $f8
+    cross_sprite_1:
+        db $02
+        db $f8
+        db $f8
+        db $83
+        db $20
+        db $f8
+    cross_sprite_2:
+        db $02
+        db $f8
+        db $f8
+        db $83
+        db $20
+        db $f8
+        db $00
     
     if GFX_SWAP
         allocate_subweapon_gfx:
