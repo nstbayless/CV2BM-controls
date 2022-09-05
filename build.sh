@@ -24,6 +24,25 @@ fi
 
 mkdir "$DST"
 
+function getLabel() {
+    A=$(sed 's/[\t ]\+/ /g' "$1" | grep -oP "(?<=$2"': equ \$).*')
+    if [ -z "$A" ]; then
+        return 1
+    else
+        echo "0x$A"
+        return 0
+    fi
+}
+
+function checkmax() {
+    if label=$(getLabel "$1" "$2"); then
+        if [[ $label -gt "0x$3" ]]; then
+            echo "EXCEEDED: $2: $label > $3"
+            exit
+        fi
+    fi
+}
+
 function build() {
     BASEROM=$1
     BUILDNAME=$BASEROM-$2
@@ -52,9 +71,21 @@ function build() {
     
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
     echo "$DST/$BASEROM $BUILDNAME"
-    grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
-    grep "end_.*_region:" $BUILDNAME.lbl || true
     
+    set +e
+    grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
+    grep "end_.*_region:" $BUILDNAME.lbl
+    
+    checkmax "$BUILDNAME.lbl" end_subweapon_region 4ad2
+    checkmax "$BUILDNAME.lbl" end_bank0 3fff
+    checkmax "$BUILDNAME.lbl" end_bank1 7fff
+    checkmax "$BUILDNAME.lbl" end_bank3 7fcf
+    checkmax "$BUILDNAME.lbl" end_bank4 7fff
+    checkmax "$BUILDNAME.lbl" end_bank6 7fff
+    checkmax "$BUILDNAME.lbl" end_bank7 7fff
+    
+    set -e
+
     mkdir -p "$DST/$BASEROM"
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
 }
