@@ -53,6 +53,7 @@ function build() {
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
     echo "$DST/$BASEROM $BUILDNAME"
     grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
+    grep "end_.*_region:" $BUILDNAME.lbl
     
     mkdir -p "$DST/$BASEROM"
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
