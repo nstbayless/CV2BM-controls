@@ -4,7 +4,7 @@ if rom_type == rom_kgbc4eu
     ALTBANK1: equ 0
     ALTBANK7: equ 0
 else
-    if (rom_type == rom_jp) | INERTIA
+    if 1
         USE_ALTBANK: equ 1
         KGBC4EU_LAYOUT: equ 0
         if rom_type == rom_jp
@@ -192,6 +192,9 @@ else
     org $0D9E
     pop_hl_ret:
     
+    org $11D8
+    pop_de_ret:
+    
     org $28a3
     load_c882_and_F:
 
@@ -337,6 +340,7 @@ if rom_type == rom_us
     org $7FBC+1
     banksk6
     
+    if 1
     ; only used by SUBWEAPONS, but reserved regardless
     axe_cross_update_unk:
         call load_c882_and_F
@@ -367,6 +371,7 @@ if rom_type == rom_us
         
         ld a, $19
         jp unk_3553
+    endif
 endif
 if rom_type == rom_jp
     org $7FE4+1
@@ -582,13 +587,20 @@ if CONTROL
             
             ; zero velocity
             ld bc, $FF00
-            call entity_set_y_velocity
+            
+            if USE_ALTBANK
+                jp entity_set_y_velocity
+            else
+                call entity_set_y_velocity
+            endif
             
         fin_vcancel:
     endif
 
     if USE_ALTBANK
+        if VCANCEL == 0
             ret
+        endif
         
         if ALTBANK7
             end_bank7:
@@ -606,7 +618,7 @@ if CONTROL
                 ld hl, $43E3
                 ld c, $16
                 
-                ld a, $(C002)
+                ldai16 $C002
                 dec a
                 
                 jp nz, mbc_call_bank
@@ -651,9 +663,6 @@ if SUBWEAPONS
         res 0, (hl)
         res 1, (hl)
         
-        ; note that $3Df8 is basically space
-        ; we can replace RST 30 with it.
-        
         ; unknown $DEC2
         ld hl, $DEC2
         inc (hl)
@@ -664,6 +673,9 @@ if SUBWEAPONS
         nop
         nop
         nop
+        
+        ; note that $3Df8 is basically space
+        ; we can replace RST 30 with it.
         
         org $0B59
         banksk0
@@ -754,6 +766,9 @@ if 1
         xor a
         ldi16a $C02B
         
+        ld a, $0D
+        db $D7; rst 10
+        
         ld bc, $FE00
         call entity_set_y_velocity
         ld bc, $0100
@@ -765,8 +780,8 @@ if 1
         ld bc, $08FA ; (position offset)
         call spawn_common
         
-        ; image <- $0C
-        ld a, $0C
+        ; image <- $0D
+        ld a, $0D
         db $D7; rst 10
         
     cross_axe_end: ; common ending for cross/axe spawn routine
@@ -945,16 +960,13 @@ endif
         inc a
         cp b
         ret nz
-        
-    replace_subweapon_gfx_store:
-        push de
-        call replace_subweapon_gfx
-        pop de
-        ret
+        ; fallthrough
     
-    ; clobbers afbcehl    
+    ; clobbers afbchl
     replace_subweapon_gfx:
         ; bank call to allocate subweapon gfx
+        push de
+        pushhl pop_de_ret
         pushhl mbc_swap_bank_1
         pushhl allocate_subweapon_gfx
         jp mbc_swap_bank_3
