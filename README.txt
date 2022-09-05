@@ -41,7 +41,7 @@ JP ROM:
     SHA256: 1e09b8dd7032db157a422d0b69cc6a384036a4ef560b08f5deed39a2fe0e21f8
     CRC32: 7582ae14
     
-Konami Gameboy Collection Vol. 4 (EU):
+Konami Gameboy Collection Vol. 4 (EU) ROM:
     MD5: f3414d53473e2cc43347774cc5f40495
     SHA256: 9c19f5d5e94ec9c2215d7d5505cfbb6d13b256143723c641a41b314ad19572b3
     CRC32: 8800f1c9

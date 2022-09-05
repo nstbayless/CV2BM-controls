@@ -58,23 +58,28 @@ function build() {
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
 }
 
-build us vcancel "VCANCEL: equ 1" "INERTIA: equ 0"
-build us no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0"
-build us inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
-build us inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
+build us subweapons "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0"
+build us vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build us no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build us inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build us inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
-build jp vcancel "VCANCEL: equ 1" "INERTIA: equ 0"
-build jp no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0"
-build jp inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
-build jp inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
+build jp vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build jp no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build jp inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build jp inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
-build kgbc4eu vcancel "VCANCEL: equ 1" "INERTIA: equ 0"
-build kgbc4eu no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0"
-build kgbc4eu inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1"
-build kgbc4eu inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1"
+build kgbc4eu vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build kgbc4eu no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build kgbc4eu inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build kgbc4eu inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
 cp README.txt "$DST"
-rm *.zip
-7z a ./cv2gb-controls.zip ./cv2gb-controls
+
+if [ -f "$DST.zip" ]
+then
+    rm *.zip
+fi
+7z a "./$DST.zip" "./$DST"
 
 exit 0
