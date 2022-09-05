@@ -223,7 +223,7 @@ else
     mbc_swap_bank_3:
     
     org $38B0
-    entity_unk_38b0:
+    entity_animate:
     
     org $38E0
     ; sets animation to (bc):(bc+1)
@@ -336,6 +336,37 @@ endif
 if rom_type == rom_us
     org $7FBC+1
     banksk6
+    
+    ; only used by SUBWEAPONS, but reserved regardless
+    axe_cross_update_unk:
+        call load_c882_and_F
+        ld a, $1F
+        call z, unk_3553
+        ret
+        
+    become_flame:
+        ; return
+        pushhl mbc_swap_bank_6
+        
+        ; image <- fire frame 0
+        ld a, $08
+        db $D7 ; rst 10
+        
+        call entity_get_y_velocity
+        
+        ; timer <- $50
+        ld a, $50
+        db $DF ; rst 18 
+        
+        ; $C02B <- 0
+        xor a
+        ldi16a $C02B
+        
+        ; increment state
+        db $F7 ; rst 30
+        
+        ld a, $19
+        jp unk_3553
 endif
 if rom_type == rom_jp
     org $7FE4+1
@@ -786,7 +817,7 @@ if 1
         ; if prop 10 != 4, apply gravity
         ld e, $10
         ld a, (de)
-        cp a, $04
+        cp $04
         call nz, entity_add_y_velocity
         ret
         
@@ -798,36 +829,25 @@ if 1
         
         ldai16 $C02B
         or a
-        jr nz, become_flame
+        jp nz, become_flame
         
         ; ret if y + 8 >= $80
         ld bc, $0008
         call entity_get_position_with_offset
         ld a, c
-        cp a, $80
+        cp $80
         ret nc
         
         ; unknown...
         call $3F2F
         bit 0, a
         ret z
-        
-    become_flame:
-        pushhl mbc_swap_bank_6
-        pushhl become_flame_bank1
-        jp mbc_swap_bank_1
-        
-    axe_cross_update_unk:
-        call load_c882_and_F
-        ld a, $1F
-        call z, unk_3553
-        ret
     
     axe_update_air:
         ; compare $4a9f in base ROM
         call $49a9
-        ; ld hl, axe_animation
-        ; call entity_set_animation
+        ld hl, axe_animation
+        call entity_animate
         
         call axe_cross_update_unk
         call gravity
@@ -836,15 +856,15 @@ if 1
     ; bounds check.
         ; a <- y position
         db $FF ; rst 38
-        cp a, $A0
+        cp $A0
         jr c, _skip_axe_bounds_check
-        cp a, $B0
+        cp $B0
         jr c, jp_entity_despawn
     _skip_axe_bounds_check:
         db $e7 ; rst 20 (get x position)
-        cp a, $a0
+        cp $a0
         ret c
-        cp a, $F0
+        cp $F0
         ret nc
         jr jp_entity_despawn
         
@@ -890,27 +910,6 @@ endif
         org $7ef0
         banksk1
     endif
-    
-    become_flame_bank1:
-        ; image <- fire frame 0
-        ld a, $08
-        db $D7 ; rst 10
-        
-        call entity_get_y_velocity
-        
-        ; timer <- $50
-        ld a, $50
-        db $DF ; rst 18 
-        
-        ; $C02B <- 0
-        xor a
-        ldi16a $C02B
-        
-        ; increment state
-        db $F7 ; rst 30
-        
-        ld a, $19
-        jp unk_3553
     
     ; clobbers everything
     intercept_apply_subweapon:
@@ -959,7 +958,7 @@ endif
     convert_subweapon_bank1:
         ; a -> a
         ; converts subweapon 1 to either 1 or 3 depending on value of d.
-        cp a, $1
+        cp $1
         ret nz
         
         ; if d%2==1
@@ -1026,7 +1025,7 @@ endif
     convert_subweapon:
         ; a -> a
         ; converts subweapon 1 to either 1 or 3 depending on value of b.
-        cp a, $1
+        cp $1
         ret nz
         
         ; if b%2==1
