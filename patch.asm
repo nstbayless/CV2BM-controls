@@ -754,10 +754,6 @@ if 1
         xor a
         ldi16a $C02B
         
-        ; image <- $0C
-        ld a, $0C
-        db $D7; rst 10
-        
         ld bc, $FE00
         call entity_set_y_velocity
         ld bc, $0100
@@ -769,10 +765,11 @@ if 1
         ld bc, $08FA ; (position offset)
         call spawn_common
         
+        ; image <- $0C
+        ld a, $0C
+        db $D7; rst 10
+        
     cross_axe_end: ; common ending for cross/axe spawn routine
-        ; set animation
-        ld bc, axe_animation
-        call entity_set_animation
         
         ld bc, $0140 ; velocity, not accounting for direction?
         jr jp_entity_set_velocity_times_direction
@@ -790,6 +787,11 @@ if 1
         
         ld bc, $FC00
         call entity_set_y_velocity
+        
+        ; set animation
+        ld bc, axe_animation
+        call entity_set_animation
+        
         jr cross_axe_end
     
     holywater_update_fire:
@@ -829,6 +831,7 @@ if 1
         
         ldai16 $C02B
         or a
+    jp_nz_become_flame:
         jp nz, become_flame
         
         ; ret if y + 8 >= $80
@@ -842,6 +845,7 @@ if 1
         call $3F2F
         bit 0, a
         ret z
+        jr jp_nz_become_flame
     
     axe_update_air:
         ; compare $4a9f in base ROM
