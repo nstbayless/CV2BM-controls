@@ -20,6 +20,8 @@ else
     endif
 endif
 
+UPDATE_GFX_VBLANK: equ 0
+
 ; call bank after org, seeks to $ in given bank.
 banksk:  macro n
     seek n ? (n - 1) * $4000 + $ : $
@@ -114,9 +116,14 @@ endif
 
 ; bits 0-1: subweapon gfx in slot 0 (ALT)
 ; bits 4-5: subweapon gfx in slot 1 (CURRENT)
-; bit  7: is 1 if refresh is needed next vblank.
+; bit 6: is 1 if allocated at all (differentiates from full byte 0, i.e. unloaded)
+; bit 7: is 1 if refresh is needed next vblank.
 org $C3E8
 subweapon_gfx_loaded:
+
+; part of hram used to transfer subweapon gfx
+org $FFB0
+subweapon_gfx_buffer:
 
 if KGBC4EU_LAYOUT
     ; clobbers b
@@ -201,6 +208,12 @@ else
     org $2950
     unk_2950:
     
+    org $297b
+    leftshift_bc_4:
+    
+    org $2AC7
+    wait_for_blank:
+    
     org $3553
     unk_3553:
     
@@ -210,7 +223,7 @@ else
     org $3D70
     unk_3d70:
     
-    org $35A9
+    org $35Ab
     mbc_swap_bank_a:
 
     org $35A9
@@ -323,12 +336,6 @@ else
     ; TODO: confirm this!
     entity_despawn:
     
-    ; cross graphics
-    org $47D0
-    banksk4
-    db $00, $00, $00, $00, $70, $00, $FC, $70
-    db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-    
 endif; ! KGBC4EU_LAYOUT
 
 ; insert into free space
@@ -372,6 +379,8 @@ if rom_type == rom_us
         ld a, $19
         jp unk_3553
     endif
+        
+        
 endif
 if rom_type == rom_jp
     org $7FE4+1
@@ -456,7 +465,6 @@ if CONTROL
     else
         jr nz, new_jump_routine_return
     endif
-
         
     new_jump_routine_exec:
 
@@ -605,9 +613,7 @@ if CONTROL
         if ALTBANK7
             end_bank7:
         else
-            if SUBWEAPONS == 1
-                end_bankB1:
-            else:
+            if SUBWEAPONS == 0
                 end_bank1:
             endif
         endif
@@ -641,9 +647,16 @@ if SUBWEAPONS
         org $0033
         banksk0
     axe_update:
+        ; [5 bytes available]
         db $C7 ; rst 0
         dw axe_update_spawn
         dw axe_update_air
+        
+        org $1D
+        banksk0
+        ; [3 bytes available]
+        vblank_tramp_2:
+            jp mbc_swap_bank_1
         
         ; vblank
         org $0040
@@ -653,11 +666,44 @@ if SUBWEAPONS
         push bc
         push de
         push hl
-        jp $63
+        jr vblank_start
         
-        org $63
+        org $50
         banksk0
+            db $d9; reti
+        vblank_tramp_0:
+            ; [7 bytes available]
+            ret z
+            push de
+            push hl
+            nop
+            nop
+            nop
+            db $3E ; skip next instruction (clobbers a)
         
+        org $58
+        banksk0
+            db $d9; reti
+        vblank_tramp_1:
+            ; [7 bytes available]
+            pushhl vblank_intercept
+            jp mbc_swap_bank_1
+            
+        _ret_: ; used globally -- but we can move this if needed :)
+            ret
+        
+        org $60
+        banksk0
+            db $d9; reti
+            
+        ; [7 bytes available]
+    vblank_tramp_a:
+        ld hl, subweapon_gfx_loaded
+        bit 7, (hl)
+        jr vblank_tramp_0
+        ; [end 7 bytes]
+        
+    vblank_start:
         ; lcdc
         ld hl, $FF40
         res 0, (hl)
@@ -667,24 +713,34 @@ if SUBWEAPONS
         ld hl, $DEC2
         inc (hl)
         
-        ; TODO -- use this
-        nop
-        nop
-        nop
-        nop
-        nop
-        
         ; note that $3Df8 is basically space
         ; we can replace RST 30 with it.
         
+        org $F2
+        banksk0
+            
+    copy_to_hram:
+        ; copy r%e bytes to destination, then return to bank 1.
+        
+        push bc
+        pop hl
+        ld bc, subweapon_gfx_buffer
+    copy_loop:
+        db $2a ; ld a, (hl+)
+        db $e2 ; ld (c), a
+        inc bc
+        dec e
+        jr nz, copy_loop
+        jp mbc_swap_bank_1
+        
         org $0B59
         banksk0
-        ;call intercept_load_entity
-        ;call $0002
+        call intercept_load_entity
+        call $0002
         
         org $2E48
         banksk0
-        ;call intercept_clear_subweapon_gfx
+        call intercept_clear_subweapon_gfx
         
         org $3889
         banksk0 
@@ -705,7 +761,12 @@ if SUBWEAPONS
     
 if 1
     subweapon_dispatch:
-        ld e, $00
+        call vblank_tramp_a
+        ; a, e <- 0
+        xor a
+        ld e, a
+        
+    _subdisp:
         call $002
         dw _ret_ ; (ret)
         dw axe_update
@@ -754,7 +815,6 @@ if 1
         
         ; misc./unk.
         call entity_reset_bit_0_prop_13_0E
-    _ret_:
         ret
         
     holywater_update_spawn:
@@ -766,7 +826,7 @@ if 1
         xor a
         ldi16a $C02B
         
-        ld a, $0D
+        ld a, $0C
         db $D7; rst 10
         
         ld bc, $FE00
@@ -780,11 +840,11 @@ if 1
         ld bc, $08FA ; (position offset)
         call spawn_common
         
-        ; image <- $0D
-        ld a, $0D
-        db $D7; rst 10
-        
     cross_axe_end: ; common ending for cross/axe spawn routine
+    
+        ; set animation
+        ld bc, axe_animation
+        call entity_set_animation
         
         ld bc, $0140 ; velocity, not accounting for direction?
         jr jp_entity_set_velocity_times_direction
@@ -802,10 +862,6 @@ if 1
         
         ld bc, $FC00
         call entity_set_y_velocity
-        
-        ; set animation
-        ld bc, axe_animation
-        call entity_set_animation
         
         jr cross_axe_end
     
@@ -926,7 +982,7 @@ else
 endif
     
     if rom_type == rom_us
-        org $7ef0
+        org $7ef0 ; IMPORTANT -- this value is in build.sh as well. Must update both.
         banksk1
     endif
     
@@ -941,8 +997,13 @@ endif
         res 7, a
         ld (de), a
         
-        ; store a.
+        ; b <- a.
         ld b, a
+        
+        ; if subweapon_gfx_loaded is fully 0, then we must refresh.
+        ldai16 subweapon_gfx_loaded
+        or a
+        jr z, replace_subweapon_gfx
         
         ; check if d in range d4-d7 inclusive
         ; if so, this isn't a lantern, so we quit.
@@ -983,6 +1044,154 @@ endif
         
         ld a, $3
         ret
+        
+    cross_graphics_b:
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+    cross_graphics_c:
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        
+    ; input: b,c are vram slots to page into
+    ; a is which item to load
+    ; 0 = none
+    ; 1 = axe
+    ; 2 = holy water
+    ; 3 = cross
+    ; 4 = none
+    ; 5 = axe
+    ; 6 = holy water (projectile)
+    ; 7 = cross (projectile)
+    page_in_subweapon_gfx:
+        push bc
+        and $03
+        call $003
+        dw pop_hl_ret
+        dw page_in_axe
+        dw page_in_holywater
+        dw page_in_cross
+    
+    ; transfers $20 bytes from subweapon_gfx_buffer in hram to vram slot given by register c
+    
+    transfer_buff_to_vram:
+        ld hl, subweapon_gfx_buffer
+    transfer_to_vram:
+        ld e, $20
+        
+    transfer_to_vram_x:
+        ; transfers r%e-1 bytes from (hl...) to (bc...)
+        ld b, $08
+        call leftshift_bc_4
+        
+        if UPDATE_GFX_VBLANK == 1
+            loop_top:
+                db $2a ; ld a, (hl+)
+                ld (bc), a
+                inc c ; inc bc would be more correct, but this is faster.
+                dec e
+                jr nz, loop_top
+            loop_bottom:
+                ret
+        else
+            loop_top:
+                ; we write 2 bytes each loop during hblank.
+                ; it looks like we could even have time to write 4,
+                ; but this works so let's play it safe.
+                db $2a ; ld a, (hl+)
+                call wait_for_blank
+                ld (bc), a
+                inc c ; inc bc would be more correct, but this is faster.
+                db $2a ; ld a, (hl+)
+                ld (bc), a
+                inc c
+                dec e
+                dec e
+                jr nz, loop_top
+            loop_bottom:
+                ei ; combine into reti?
+                ret
+        endif
+        
+        
+    page_in_cross:
+        ld hl, cross_graphics_b
+        ld e, $40
+        pop bc
+        if UPDATE_GFX_VBLANK == 0
+            di
+        endif
+        jr transfer_to_vram_x
+    
+    page_in_holywater:    
+        ld bc, $4840
+        ld de, $4860
+        jr page_in_direct
+    page_in_axe:
+        ld bc, $4800
+        ld de, $4820
+    page_in_direct:
+        call copy_from_bank4
+        
+        pop bc
+        push bc
+        ld c, b
+        push de
+        call transfer_buff_to_vram
+        pop bc
+        
+        call copy_from_bank4
+        pop bc
+        jr transfer_buff_to_vram
+        ret
+        
+    vblank_intercept:
+        if 0
+            call replace_subweapon_gfx
+        endif
+        
+        ; hl <- subweapon_gfx_loaded
+        pop hl 
+        ld a, (hl)
+        
+        ; check that there is enough room on the stack for this operation
+        ; $48 bytes should suffice.
+        ; db $f8, $80-$48
+        ; jr nc, vblank_intercept_return
+        ld hl, subweapon_gfx_loaded
+        
+        ; clear 'dirty' flag 
+        res 7, (hl)
+        
+        ; load ALT graphics into 84,86
+        push af
+        ld bc, $8486
+        call page_in_subweapon_gfx
+        
+        ; load ACTIVE graphics into $80,82
+        pop af
+        dw $37CB ; swap A
+        push af
+        ld bc, $8082
+        call page_in_subweapon_gfx
+        
+        pop af
+        
+    vblank_intercept_return:
+        ; pop and return return
+        pop de
+        jp mbc_swap_bank_6
+    
+    copy_from_bank4:
+        push de
+        pushhl pop_de_ret
+        pushhl copy_to_hram
+        ld e, $20
+        ld a, $4
+        if UPDATE_GFX_VBLANK == 0
+            di
+        endif
+    jp_to_mbc_swap_bank_a:
+        jp mbc_swap_bank_a
     
     end_bank1:
     
@@ -995,7 +1204,7 @@ endif
     allocate_subweapon_gfx:
         ldai16 current_subweapon
         dw $37CB ; swap A
-        set 7, a; "needs update" flag.
+        or $C0 ; "needs update" flag and "is allocated" flag
         ld hl, subweapon_gfx_loaded
         ld (hl), a
         
@@ -1021,7 +1230,7 @@ endif
         
         ; check against gfx slot 0 (ALT)
         ld a, (hl)
-        and #$03
+        and $03
         jr z, assign
         cp e
         jr z, loopnext
