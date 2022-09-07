@@ -111,6 +111,9 @@ pop_hl_ret:
 org $11D8
 pop_de_ret:
 
+org $1248
+xor_a_ret:
+
 org $28a3
 load_c882_and_F:
 
@@ -291,23 +294,38 @@ if CONTROL
 endif
 
 if SUBWEAPONS
+    org $1D
+    banksk0
+        ; [3 bytes available]
+        vblank_tramp_2:
+            jp mbc_swap_bank_1
+    
+    org $24
+    banksk0
+    swaporhl_ifnz:
+        ;[4 bytes available]
+        inc (hl)
+        dec (hl)
+        jr swaporhl_ifnz_b
+
     org $0033
-        banksk0
+    banksk0
     axe_update:
         ; [5 bytes available]
         db $C7 ; rst 0
         dw axe_update_spawn
         dw axe_update_air
-        
-        org $1D
-        banksk0
-        ; [3 bytes available]
-        vblank_tramp_2:
-            jp mbc_swap_bank_1
-        
-        ; vblank
-        org $0040
-        banksk0
+    
+    org $3C
+    banksk0
+    ; [4 bytes available]
+    swaporhl_ifnz_b:
+        jp nz, swaporhl
+        ret
+    
+    ; vblank
+    org $0040
+    banksk0
         di
         push af
         push bc
@@ -374,8 +392,10 @@ if SUBWEAPONS
             dw $4840
             db $1
             dw cross_graphics_b
+        swaporhl:
+            ; [4 bytes]
+            dw $37CB ; swap A
         orhl:
-            ; [2 bytes]
             or (hl)
             ret
         
@@ -396,8 +416,14 @@ if SUBWEAPONS
         cp (hl) ; compare gfx loaded in slot 1 with current subweapon
         push de
         
-        org $6F19
-        banksk3
+    org $4647
+    banksk6
+        ; ret z if a is non-zero
+        or a
+        jp nz, xor_a_ret
+        
+    org $6F19
+    banksk3
         call intercept_draw_sprite
 endif
 
@@ -853,18 +879,24 @@ if SUBWEAPONS
         ; fallthrough
         
     intercept_get_new_subweapon:
+        ; preserve de
+        push de
+        pushhl pop_de_ret
+        
         call convert_subweapon
         ldi16a current_subweapon
         ; fallthrough
         
     allocate_subweapon_gfx:
-        ; set slot 2 to whatever subweapon is in use -- if that's different.
-        ldai16 $c300
-        
-        ld hl, current_subweapon
+        ldai16 current_subweapon
+        ld hl, $c300
+        or a
+        call z, orhl
         cp (hl)
+        call nz, swaporhl_ifnz
+        
+        ; active goes in slot 1
         dw $37CB ; swap A
-        call nz, orhl
         
         or $C0 ; "needs update" flag and "is allocated" flag
         
@@ -1049,8 +1081,8 @@ if SUBWEAPONS
             
             ; a <- gfx loaded in slot 1
             pop af
-            jr z, _cont ; if no subweapon icon, skip this.
             and $3
+            jr z, _cont ; if no subweapon icon, skip this.
             
             ; load subweapon icon accordingly.
             call set_subweapon_icon
