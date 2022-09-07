@@ -729,6 +729,7 @@ if SUBWEAPONS
     copy_loop:
         db $2a ; ld a, (hl+)
         db $e2 ; ld (c), a
+        ;ld (bc), a
         inc c
         dec e
         jr nz, copy_loop
@@ -1006,7 +1007,7 @@ endif
     intercept_apply_subweapon:
         call convert_subweapon
         ldi16a current_subweapon
-        jr allocate_subweapon_gfx
+        jr allocate_subweapon_gfx_asub
     
     intercept_load_entity:
         ;(existing code)
@@ -1046,6 +1047,7 @@ endif
         
     allocate_subweapon_gfx:
         ldai16 current_subweapon
+    allocate_subweapon_gfx_asub:
         dw $37CB ; swap A
         or $C0 ; "needs update" flag and "is allocated" flag
         ld hl, subweapon_gfx_loaded
@@ -1057,7 +1059,7 @@ endif
     loopnext:
         inc d
         ld a, $d8
-        cp b
+        cp d
         ret z
         
         ; check if value is 1 or 2
