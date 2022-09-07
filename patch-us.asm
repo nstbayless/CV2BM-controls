@@ -683,6 +683,21 @@ end_bank6:
 org $7E7D;+1
 banksk1
 
+if SUBWEAPONS
+    ; we need this address to not cross pages.
+    ; it makes math later easier.
+    cross_graphics_b:
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+    cross_graphics_c:
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+endif
+
 if CONTROL
     lr_ctrl:
         ld l, 2
@@ -908,27 +923,16 @@ if SUBWEAPONS
         ld a, $3
         ret
         
-    cross_graphics_b:
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-    cross_graphics_c:
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        
     vblank_intercept_0:
-        push de
-        pop hl
+        ld h, d
+        ld l, e
         ld a, (hl)
         set 2, (hl)
-        ld de, $8840
+        ld e, $40
         ; fallthrough
         
-    ; input: de is vram address to store to
-    ; c: load offset
+    ; input: $88e is vram address to store to
+    ; b: load offset
     ; bits 012 of a is which item to load
     ; 0 = none
     ; 1 = axe
@@ -937,7 +941,7 @@ if SUBWEAPONS
     ; returns from interrupt
     page_in_subweapon_gfx:
         and $03
-        ret z
+        jr z, vblank_intercept_return
         
         ; a <- 3A
         ld l, a
@@ -949,51 +953,49 @@ if SUBWEAPONS
         db $ef; rst 28
         
         ldiahl
-        push af
-        push bc
-        ld c, (hl)
-        inc hl
-        ld b, (hl)
-        ; fallthrough
+        push af ; bank to load from
+            ; dangerous! 1-byte add to 2-byte value
+            ldiahl
+            add b
+            ld c, a
+            
+            ld b, (hl)
+            ; fallthrough
     
-    ; input:
-    ; bc: vram address to store to
-    ; de: address to load from
-    ; push: offset
-    ; push: bank to load from
-    ; transfers $20 bytes.
-    transfer_buff_to_vram:
-        call load_hl_vram_copy_buffer
+            ; input:
+            ; bc: vram address to store to
+            ; de: address to load from
+            ; push: offset
+            ; push: bank to load from
+            ; transfers $20 bytes.
+            transfer_buff_to_vram:
+                call load_hl_vram_copy_buffer
+            
+            ; destination
+            ld a, $88
+            ldihla
+            ld a, e
+            ldihla
         
-        ; destination
-        ld a, d
-        ldihla
-        ld a, e
-        ldihla
-        
-        ; stride, and d <- 0, e <- offset
-        pop de
-        xor a
-        ld d, a
-        inc a
-        ldihla
-        
-        add hl, de
-        
+            ; stride <- 1
+            xor a
+            inc a
+            ldihla
         pop af ; a <- source bank
         
+        ; uses bc
         call _copy
         
         ld a, $FF ; terminal
         ldihla
         
+        ; post-terminal 0
+        xor a
+        ld (hl), a
+        
         ; update index
         ld a, l
         ldi16a vram_transfer_index
-        
-        ; post-terminal 0
-        xor a
-        ldihla
         
     vblank_intercept_return:
         pop de ; this is pushed by caller. mixed save/restore.
@@ -1006,53 +1008,57 @@ if SUBWEAPONS
         jp mbc_swap_bank_a
         
     vblank_intercept_1:
-        push de
-        pop hl
+        ld h, d
+        ld l, e
         
         ; a <- subweapon
         ld a, (hl)
         set 3, (hl)
-        ld c, $20
-        ld de, $8860
+        ld b, $20
+        ld e, $60
         jr page_in_subweapon_gfx
         
     vblank_intercept_2:
-        push de
-        pop hl
+        ld h, d
+        ld l, e
+        
         ld a, (hl)
         dw $37CB ; swap A
         res 2, (hl)
-        ld de, $8860
+        ld e, $00
         jr page_in_subweapon_gfx
         
     vblank_intercept_3:
-        push bc
-            push de
-            pop hl
-            ld a, (hl)
-            dw $37CB ; swap A
+        ; this one is messy because in addition to paging in
+        ; graphics like the other three, we also must load the
+        ; "subweapon icon."
+        ld h, d
+        ld l, e
+        
+        ld a, (hl)
+        dw $37CB ; swap A
+        push af
             push af
-                push af
+            
+                res 7, (hl) ; clear 'dirty' flag -- this is our last update.
                 
-                    res 7, (hl) ; clear 'dirty' flag -- this is our last update.
-                    
-                    ; replace subweapon icon
-                    ld hl, current_subweapon
-                    xor a
-                    or (hl)
-                
-                ; a <- gfx loaded in slot 1
-                pop af
-                jr z, _cont ; if no subweapon icon, skip this.
-                and $3
-                
-                ; load subweapon icon accordingly.
-                call set_subweapon_icon
-                
-            _cont:
-                ld de, $8820
+                ; replace subweapon icon
+                ld hl, current_subweapon
+                xor a
+                or (hl)
+            
+            ; a <- gfx loaded in slot 1
             pop af
-        pop bc
+            jr z, _cont ; if no subweapon icon, skip this.
+            and $3
+            
+            ; load subweapon icon accordingly.
+            call set_subweapon_icon
+            
+        _cont:
+            ld e, $20
+        pop af
+        ld b, e ; ld b, $20
         jr page_in_subweapon_gfx
         
     vblank_intercept:
@@ -1069,7 +1075,7 @@ if SUBWEAPONS
 
         push hl
         pop de
-        ld c, $00
+        ld b, $00
         
         ; a >>= 2
         db $0f ; rrca
