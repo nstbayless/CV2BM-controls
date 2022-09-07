@@ -66,7 +66,15 @@ function build() {
     md5sum base-$BASEROM.gb
     sha256sum base-$BASEROM.gb
     crc32 base-$BASEROM.gb
-    z80asm -v -o $BUILDNAME.gb --label=$BUILDNAME.lbl -i cfg.asm patch.asm
+    
+    if [ $BASEROM == "us" ]
+    then
+        PATCH=patch-us.asm
+    else
+        PATCH=patch.asm
+    fi
+    
+    z80asm -v -o $BUILDNAME.gb --label=$BUILDNAME.lbl -i cfg.asm $PATCH
     $FLIPS -c --ips base-$BASEROM.gb $BUILDNAME.gb $BUILDNAME.ips
     
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
@@ -79,6 +87,7 @@ function build() {
     checkmax "$BUILDNAME.lbl" end_subweapon_region 4ad2
     checkmax "$BUILDNAME.lbl" end_bank0 3fff
     checkmax "$BUILDNAME.lbl" end_bank1 7fff
+    checkmax "$BUILDNAME.lbl" end_bank1B 7fff
     if ! echo "$BUILDNAME" | grep -q subweapons && echo "$BASEROM" | grep -q us; then
         checkmax "$BUILDNAME.lbl" end_bank1 7ef0
     fi
@@ -86,17 +95,18 @@ function build() {
     checkmax "$BUILDNAME.lbl" end_bank4 7fff
     checkmax "$BUILDNAME.lbl" end_bank6 7fff
     checkmax "$BUILDNAME.lbl" end_bank7 7fff
-    
 
     mkdir -p "$DST/$BASEROM"
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
 }
 
 build us subweapons "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0"
-build us vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build us no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build us vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build us inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build us inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build us subweapons-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+build us subweapons-vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
 
 build jp vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build jp no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
