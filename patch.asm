@@ -1026,7 +1026,7 @@ else
 endif
     
     if rom_type == rom_us
-        org $7ef0 ; IMPORTANT -- this value is in build.sh as well. Must update both.
+        org $7ee0 ; IMPORTANT -- this value is in build.sh as well. Must update both.
         banksk1
     endif
     
@@ -1131,18 +1131,56 @@ endif
         ld a, $3
         ret
         
+    ld_cross_graphics:
+        push hl
+        ld bc, cross_graphics_b
+        call double_rotate
+        pop bc
+        push hl
+        call double_rotate
+        pop bc
+        push hl
+        call double_rotate
+        pop bc
+        ; fallthrough
+    
+    
+    double_rotate:
+        call rotate
+    
+        ; rotate (bc) into (hl)
+        ; adds 8 to hl.
+        ; must be 8-aligned
+    rotate:
+        ld d, $8
+        push hl
+    rotate_loop:
+        ld a, (bc)
+        inc bc
+        pop hl
+        push hl
+        ld e, $8
+    rotate_tight:
+        rlca
+        rr (hl)
+        inc hl
+        dec e
+        jr nz, rotate_tight
+        dec d
+        jr nz, rotate_loop
+        pop de
+        ret
+        
     cross_graphics_b:
         db $00, $00, $00, $00, $70, $00, $FC, $70
         db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $0D, $06, $0F, $04, $1b, $0d, $1d, $0b
-        db $37, $1a, $3b, $16, $3e, $1c, $1c, $00
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
     cross_graphics_c:
         db $00, $00, $00, $00, $70, $00, $FC, $70
         db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $0D, $06, $0F, $04, $1b, $0d, $1d, $0b
-        db $37, $1a, $3b, $16, $3e, $1c, $1c, $00
-        
-
+        db $00, $00, $00, $00, $70, $00, $FC, $70
+        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
         
     subweapon_gfx_sources:
         db $4
