@@ -689,13 +689,13 @@ if SUBWEAPONS
     cross_graphics_b:
         db $00, $00, $00, $00, $70, $00, $FC, $70
         db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        db $0D, $06, $0F, $04, $1B, $0D, $1D, $0B
+        db $37, $1A, $3B, $16, $3E, $1C, $1C, $00
     cross_graphics_c:
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        db $38, $00, $7C, $38, $DC, $68, $EC, $58
+        db $B8, $d0, $D8, $B0, $F0, $20, $B0, $60
+        db $FC, $30, $6E, $9C, $DB, $E6, $F7, $3A
+        db $3F, $0E, $0E, $00, $00, $00, $00, $00
 endif
 
 if CONTROL
@@ -858,10 +858,10 @@ if SUBWEAPONS
         ; fallthrough
         
     allocate_subweapon_gfx:
-        ldai16 current_subweapon
+        ; set slot 2 to whatever subweapon is in use -- if that's different.
+        ldai16 $c300
         
-        ; set slot 2 to whatever subweapon is out -- if that's different.
-        ld hl, $c300
+        ld hl, current_subweapon
         cp (hl)
         dw $37CB ; swap A
         call nz, orhl
