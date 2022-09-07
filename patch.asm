@@ -329,6 +329,9 @@ else
     org $4822
     ret_4822:
     
+    org $482F
+    axe_animation:
+    
     org $499b
     unk_499b:
     
@@ -350,6 +353,7 @@ if rom_type == rom_us
     if 1
     ; only used by SUBWEAPONS, but reserved regardless
     axe_cross_update_unk:
+        call entity_animate
         call load_c882_and_F
         ld a, $1F
         call z, unk_3553
@@ -640,9 +644,6 @@ endif
 
 if SUBWEAPONS
     if rom_type == rom_us
-    
-        org $482F
-        axe_animation:
         
         org $0033
         banksk0
@@ -668,18 +669,21 @@ if SUBWEAPONS
         push hl
         jr vblank_start
         
-        org $50
+        org $4B
         banksk0
-            db $d9; reti
         vblank_tramp_0:
-            ; [7 bytes available]
+            ; [5 bytes available]
             ret z
             push de
             push hl
-            nop
-            nop
-            nop
-            db $3E ; skip next instruction (clobbers a)
+            jr vblank_tramp_1
+        
+        org $50
+        banksk0
+            db $d9; reti
+            ; [7 bytes available]
+        cross_animation:
+            db $04, $0D, $04, $0E, $04, $0F, $FE
         
         org $58
         banksk0
@@ -688,9 +692,6 @@ if SUBWEAPONS
             ; [7 bytes available]
             pushhl vblank_intercept
             jp mbc_swap_bank_1
-            
-        _ret_: ; used globally -- but we can move this if needed :)
-            ret
         
         org $60
         banksk0
@@ -724,11 +725,11 @@ if SUBWEAPONS
         
         push bc
         pop hl
-        ld bc, subweapon_gfx_buffer
+        ld bc, subweapon_gfx_buffer ; note: b is unused here.
     copy_loop:
         db $2a ; ld a, (hl+)
         db $e2 ; ld (c), a
-        inc bc
+        inc c
         dec e
         jr nz, copy_loop
         jp mbc_swap_bank_1
@@ -748,10 +749,26 @@ if SUBWEAPONS
         
         org $6F19
         banksk3
-        ;call intercept_draw_sprite
+        call intercept_draw_sprite
         
         org $6F4D
         draw_sprite:
+        
+        org $6F51
+        draw_sprite_hl:
+        
+        
+        org $4292
+        axe_sprite_0:
+        
+        org $4299
+        axe_sprite_1:
+        
+        org $42a2
+        axe_sprite_2:
+        
+        org $42ab
+        axe_sprite_3:
     endif
 
     if rom_type == rom_us
@@ -766,7 +783,6 @@ if 1
         xor a
         ld e, a
         
-    _subdisp:
         call $002
         dw _ret_ ; (ret)
         dw axe_update
@@ -814,8 +830,7 @@ if 1
         db $f7 ; rst 30
         
         ; misc./unk.
-        call entity_reset_bit_0_prop_13_0E
-        ret
+        jp entity_reset_bit_0_prop_13_0E
         
     holywater_update_spawn:
         ; compare $49CA in base rom
@@ -840,10 +855,10 @@ if 1
         ld bc, $08FA ; (position offset)
         call spawn_common
         
+        ld bc, cross_animation
     cross_axe_end: ; common ending for cross/axe spawn routine
     
         ; set animation
-        ld bc, axe_animation
         call entity_set_animation
         
         ld bc, $0140 ; velocity, not accounting for direction?
@@ -863,6 +878,7 @@ if 1
         ld bc, $FC00
         call entity_set_y_velocity
         
+        ld bc, axe_animation
         jr cross_axe_end
     
     holywater_update_fire:
@@ -892,6 +908,7 @@ if 1
         ld a, (de)
         cp $04
         call nz, entity_add_y_velocity
+    _ret_:
         ret
         
     holywater_update_air:
@@ -922,8 +939,6 @@ if 1
         ; compare $4a9f in base ROM
         call $49a9
         ld hl, axe_animation
-        call entity_animate
-        
         call axe_cross_update_unk
         call gravity
         call unk_0c52
@@ -947,6 +962,7 @@ if 1
         ; compare JP 06:4a97
         call $49a9
         call unk_0c52_and_despawn_if_0
+        ld hl, cross_animation
         call axe_cross_update_unk
         ldai16 $C301
         dec a
@@ -988,14 +1004,18 @@ endif
     
     ; clobbers everything
     intercept_apply_subweapon:
-        call convert_subweapon_bank1
+        call convert_subweapon
         ldi16a current_subweapon
-        jr replace_subweapon_gfx
+        jr allocate_subweapon_gfx
     
     intercept_load_entity:
         ;(existing code)
         res 7, a
         ld (de), a
+        
+        ; preserve de.
+        push de
+        pushhl pop_de_ret
         
         ; b <- a.
         ld b, a
@@ -1003,7 +1023,7 @@ endif
         ; if subweapon_gfx_loaded is fully 0, then we must refresh.
         ldai16 subweapon_gfx_loaded
         or a
-        jr z, replace_subweapon_gfx
+        jr z, allocate_subweapon_gfx
         
         ; check if d in range d4-d7 inclusive
         ; if so, this isn't a lantern, so we quit.
@@ -1017,22 +1037,61 @@ endif
         ; check that lantern has subweapon
         ld a, $1
         cp b
-        jr z, replace_subweapon_gfx
+        jr z, allocate_subweapon_gfx
         inc a
         cp b
         ret nz
-        ; fallthrough
-    
-    ; clobbers afbchl
-    replace_subweapon_gfx:
-        ; bank call to allocate subweapon gfx
-        push de
-        pushhl pop_de_ret
-        pushhl mbc_swap_bank_1
-        pushhl allocate_subweapon_gfx
-        jp mbc_swap_bank_3
         
-    convert_subweapon_bank1:
+        ; fallthrough
+        
+    allocate_subweapon_gfx:
+        ldai16 current_subweapon
+        dw $37CB ; swap A
+        or $C0 ; "needs update" flag and "is allocated" flag
+        ld hl, subweapon_gfx_loaded
+        ld (hl), a
+        
+        ; scan through lanterns to find what other subweapons are there
+        ; check lanterns, which are at indices d4, d5, d6, and d7.
+        ld de, $d300
+    loopnext:
+        inc d
+        ld a, $d8
+        cp b
+        ret z
+        
+        ; check if value is 1 or 2
+        ld a, (de)
+        or a
+        jr z, loopnext
+        cp $3
+        jr nc, loopnext
+        
+        ; b <- index of subweapon
+        call convert_subweapon
+        ld b, a
+        
+        ; check against gfx slot 0 (ALT)
+        ld a, (hl)
+        and $03
+        jr z, assign
+        cp b
+        jr z, loopnext
+        
+        ; does not match slot 0 (ALT)
+        ; sadly replace this lantern with a small consolation heart.
+        ld a, $5
+        ld (de), a
+        jr loopnext
+    
+    assign:
+        ld a, (hl)
+        or b
+        ld (hl), a
+        jr loopnext
+    
+        
+    convert_subweapon:
         ; a -> a
         ; converts subweapon 1 to either 1 or 3 depending on value of d.
         cp $1
@@ -1049,8 +1108,8 @@ endif
         db $00, $00, $00, $00, $70, $00, $FC, $70
         db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
     cross_graphics_c:
-        db $00, $00, $00, $00, $70, $00, $FC, $70
-        db $EF, $5C, $DB, $67, $76, $39, $3F, $0C
+        db $0D, $06, $0F, $04, $1b, $0d, $1d, $0b
+        db $37, $1a, $3b, $16, $3e, $1c, $1c, $00
         
     ; input: b,c are vram slots to page into
     ; a is which item to load
@@ -1115,20 +1174,19 @@ endif
         
     page_in_cross:
         ld hl, cross_graphics_b
-        ld e, $40
         pop bc
         if UPDATE_GFX_VBLANK == 0
             di
         endif
-        jr transfer_to_vram_x
+        jr transfer_to_vram
     
     page_in_holywater:    
-        ld bc, $4840
-        ld de, $4860
+        ld bc, $4860
+        ld de, $4840
         jr page_in_direct
     page_in_axe:
-        ld bc, $4800
-        ld de, $4820
+        ld bc, $4820
+        ld de, $4800
     page_in_direct:
         call copy_from_bank4
         
@@ -1145,9 +1203,6 @@ endif
         ret
         
     vblank_intercept:
-        if 0
-            call replace_subweapon_gfx
-        endif
         
         ; hl <- subweapon_gfx_loaded
         pop hl 
@@ -1164,14 +1219,14 @@ endif
         
         ; load ALT graphics into 84,86
         push af
-        ld bc, $8486
+        ld bc, $8684
         call page_in_subweapon_gfx
         
         ; load ACTIVE graphics into $80,82
         pop af
         dw $37CB ; swap A
         push af
-        ld bc, $8082
+        ld bc, $8280
         call page_in_subweapon_gfx
         
         pop af
@@ -1195,70 +1250,66 @@ endif
     
     end_bank1:
     
-    org $7f80
+    org $7f7f+1
     banksk3
     
-    intercept_draw_sprite:
-        jp draw_sprite
-
-    allocate_subweapon_gfx:
-        ldai16 current_subweapon
-        dw $37CB ; swap A
-        or $C0 ; "needs update" flag and "is allocated" flag
-        ld hl, subweapon_gfx_loaded
-        ld (hl), a
-        
-        ; scan through lanterns to find what other subweapons are there
-        ; check lanterns, which are at indices d4, d5, d6, and d7.
-        ld bc, $d300
-    loopnext:
-        inc b
-        ld a, $d8
-        cp b
-        ret z
-        
-        ; check if value is 1 or 2
-        ld a, (bc)
-        or a
-        jr z, loopnext
-        cp $3
-        jr nc, loopnext
-        
-        ; e <- index of subweapon
-        call convert_subweapon
-        ld e, a
-        
-        ; check against gfx slot 0 (ALT)
-        ld a, (hl)
-        and $03
-        jr z, assign
-        cp e
-        jr z, loopnext
-        
-        ; does not match slot 0 (ALT)
-        ; sadly replace this lantern with a small consolation heart.
-        ld a, $5
-        ld (bc), a
-        jr loopnext
+        ; TODO -- replace holy water icon sprite.
     
-    assign:
+    intercept_draw_sprite:
+        ld a, $c3
+        cp h
+        call z, substitute_sprite
         ld a, (hl)
-        or e
-        ld (hl), a
-        jr loopnext
+        jp draw_sprite
+    
+    substitute_sprite:
+        ; only substitute sprites D through 10
+        ld a, (hl) ; a <- sprite index
+        cp $d
+        ret c
+        cp $11
+        ret nc
         
-    convert_subweapon:
-        ; a -> a
-        ; converts subweapon 1 to either 1 or 3 depending on value of b.
-        cp $1
+        ; only substitue if it's the cross
+        ld e, $0
+        ld d, h
+        ld a, (de)
+        cp $3
         ret nz
         
-        ; if b%2==1
-        bit 0, b
-        ret z
+        ; ok, let's substitute.
+        ld a, (hl)
+        pop hl ; remove return address
+        ld h, $7F
+        add a
+        add cross_sprite_table - $7F00 - 2*$D
+        ld l, a
+        jp draw_sprite_hl
+    
+    cross_sprite_table:
+        dw cross_sprite_2
+        dw cross_sprite_1
+        dw cross_sprite_0
+        dw cross_sprite_1
+    
+    cross_sprite_0:
+        db $2 ; number of images
+        db $f8, $f8, $80
+        db $f8, $00, $81
+        db $60 ; flags
         
-        ld a, $3
-        ret
+    cross_sprite_1:
+        db $2 ; number of images
+        db $f8, $f8, $7C
+        db $f8, $00, $7D
+        db $60 ; flags
+        
+    cross_sprite_2:
+        db $2 ; number of images
+        db $f8, $f8, $81
+        db $40 ; flags
+        db $f8, $00, $81
+        db $20 ; flags
     
     ; MUST BE <= $7FCF
     end_bank3:

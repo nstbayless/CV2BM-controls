@@ -74,17 +74,19 @@ function build() {
     
     set +e
     grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
-    grep "end_.*_region:" $BUILDNAME.lbl
+    set -e
     
     checkmax "$BUILDNAME.lbl" end_subweapon_region 4ad2
     checkmax "$BUILDNAME.lbl" end_bank0 3fff
     checkmax "$BUILDNAME.lbl" end_bank1 7fff
+    if ! echo "$BUILDNAME" | grep -q subweapons && echo "$BASEROM" | grep -q us; then
+        checkmax "$BUILDNAME.lbl" end_bank1 7ef0
+    fi
     checkmax "$BUILDNAME.lbl" end_bank3 7fcf
     checkmax "$BUILDNAME.lbl" end_bank4 7fff
     checkmax "$BUILDNAME.lbl" end_bank6 7fff
     checkmax "$BUILDNAME.lbl" end_bank7 7fff
     
-    set -e
 
     mkdir -p "$DST/$BASEROM"
     cp "$BUILDNAME.ips" "$DST/$BASEROM"
