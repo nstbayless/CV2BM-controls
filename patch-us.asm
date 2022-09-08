@@ -80,14 +80,6 @@ current_subweapon:
 org $3FF1+1
 banksk0
 
-if CONTROL | SUBWEAPONS
-    ; we reserve this regardless of CONTROL or SUBWEAPONS.
-    intercept_clear_subweapon_gfx:
-        xor a
-        ldi16a subweapon_gfx_loaded
-        jp $2E57
-endif
-
 if CONTROL
     ld_speed_hack_velocity_r_cb:
         ld hl, speed_hack_velocity_r_cb
@@ -406,7 +398,7 @@ if SUBWEAPONS
         
         org $2E48
         banksk0
-        call intercept_clear_subweapon_gfx
+        ;call intercept_clear_subweapon_gfx
         
         org $3888
         banksk0 
@@ -415,6 +407,13 @@ if SUBWEAPONS
     set_subweapon_icon:
         cp (hl) ; compare gfx loaded in slot 1 with current subweapon
         push de
+        
+    org $42CF
+    banksk1
+        call convert_subweapon
+        nop
+        nop
+        nop
         
     org $42D2
     banksk1
@@ -866,11 +865,6 @@ if SUBWEAPONS
         push de
         pushhl pop_de_ret
         
-        ; if subweapon_gfx_loaded is fully 0, then we must refresh.
-        ldai16 subweapon_gfx_loaded
-        or a
-        jr z, allocate_subweapon_gfx
-        
         ; check if d in range d4-d7 inclusive
         ; if so, this isn't a lantern, so we quit.
         ld a, $d3
@@ -1127,11 +1121,19 @@ if SUBWEAPONS
     end_bank1:
 endif    
 
-; BANK3 -------------------------------------------------------------------------
+; BANK3 (A) -------------------------------------------------------------------------
+
+org $69C8+1
+banksk3
 
 if SUBWEAPONS
-    org $7f7f+1
-    banksk3
+endif
+
+; BANK3 (B) -------------------------------------------------------------------------
+
+org $7f7f+1
+banksk3
+if SUBWEAPONS
     
     set_subweapon_gfx:
         dw $37CB ; swap A

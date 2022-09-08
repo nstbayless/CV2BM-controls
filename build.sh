@@ -91,6 +91,7 @@ function build() {
     if ! echo "$BUILDNAME" | grep -q subweapons && echo "$BASEROM" | grep -q us; then
         checkmax "$BUILDNAME.lbl" end_bank1 7ef0
     fi
+    checkmax "$BUILDNAME.lbl" end_bank3A 6a00
     checkmax "$BUILDNAME.lbl" end_bank3 7fcf
     checkmax "$BUILDNAME.lbl" end_bank4 7fff
     checkmax "$BUILDNAME.lbl" end_bank6 7fff
