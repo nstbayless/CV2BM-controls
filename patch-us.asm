@@ -411,7 +411,7 @@ if SUBWEAPONS
     org $42CF
     banksk1
         call convert_subweapon
-        nop
+        nop 
         nop
         nop
         
@@ -444,8 +444,8 @@ if SUBWEAPONS
     banksk6
     
     subweapon_dispatch:
-        call vblank_tramp_a
         ; a, e <- 0
+        call vblank_tramp_a
         xor a
         ld e, a
         
@@ -501,7 +501,7 @@ if SUBWEAPONS
     holywater_update_spawn:
         ; compare $49CA in base rom
         ld bc, $0800 ; (position offset)
-        call spawn_common
+        call spawn_common_bank6
         
         ; $C02b <- 0
         xor a
@@ -519,7 +519,7 @@ if SUBWEAPONS
     cross_update_spawn:
         ; compare: JP rom, 06:4a64
         ld bc, $08FA ; (position offset)
-        call spawn_common
+        call spawn_common_bank6
         
         ld bc, cross_animation
     cross_axe_end: ; common ending for cross/axe spawn routine
@@ -533,7 +533,7 @@ if SUBWEAPONS
     axe_update_spawn:
         ; compare $4a64 in base rom
         ld bc, $08F8 ; (position offset)
-        call spawn_common
+        call spawn_common_bank6
         
         ; set prop $1f to $03
         ; (unknown)
@@ -667,6 +667,11 @@ org $7FBC+1
 banksk6
 
 if SUBWEAPONS
+    spawn_common_bank6:
+        pushhl spawn_common
+        pushhl spawn_common_bank3
+        jp mbc_swap_bank_3
+        
     axe_cross_update_unk:
         call entity_animate
         call load_c882_and_F
@@ -676,7 +681,7 @@ if SUBWEAPONS
         
     become_flame:
         ; return
-        pushhl mbc_swap_bank_6
+        ;pushhl mbc_swap_bank_6
         
         ; image <- fire frame 0
         ld a, $08
@@ -1127,6 +1132,17 @@ org $69C8+1
 banksk3
 
 if SUBWEAPONS
+spawn_common_bank3:
+    pushhl mbc_swap_bank_6
+    ldai16 subweapon_gfx_loaded
+    dw $37CB ; swap A
+    and $3
+    ld h, d
+    ld l, $0
+    cp (hl)
+    ret z
+    pushhl allocate_subweapon_gfx
+    jp mbc_swap_bank_1
 endif
 
 ; BANK3 (B) -------------------------------------------------------------------------
@@ -1134,7 +1150,6 @@ endif
 org $7f7f+1
 banksk3
 if SUBWEAPONS
-    
     set_subweapon_gfx:
         dw $37CB ; swap A
         set 7, a
