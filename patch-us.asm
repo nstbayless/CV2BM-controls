@@ -416,6 +416,10 @@ if SUBWEAPONS
         cp (hl) ; compare gfx loaded in slot 1 with current subweapon
         push de
         
+    org $42D2
+    banksk1
+        db $B
+        
     org $4647
     banksk6
         ; ret z if a is non-zero
@@ -425,6 +429,13 @@ if SUBWEAPONS
     org $6F19
     banksk3
         call intercept_draw_sprite
+        
+    org $77AB
+    banksk3
+        ; don't reload the subweapon UI graphics on game start.
+        ; instead, we mark for refresh.
+        ldai16 current_subweapon
+        call set_subweapon_gfx
 endif
 
 ; BANK6 SUBWEAPONS REGION PATCH --------------------------------------------------------
@@ -847,12 +858,13 @@ if SUBWEAPONS
         res 7, a
         ld (de), a
         
+        ; check that this would be a weapon index
+        cp $3
+        ret nc
+        
         ; preserve de.
         push de
         pushhl pop_de_ret
-        
-        ; b <- a.
-        ld b, a
         
         ; if subweapon_gfx_loaded is fully 0, then we must refresh.
         ldai16 subweapon_gfx_loaded
@@ -861,22 +873,13 @@ if SUBWEAPONS
         
         ; check if d in range d4-d7 inclusive
         ; if so, this isn't a lantern, so we quit.
-        ld a, $d4
-        cp d
-        ret c
-        ld a, $d8
+        ld a, $d3
         cp d
         ret nc
-        
-        ; check that lantern has subweapon
-        ld a, $1
-        cp b
-        jr z, allocate_subweapon_gfx
-        inc a
-        cp b
-        ret nz
-        
-        ; fallthrough
+        ;ld a, $d8
+        ;cp d
+        ;ret c
+        jr allocate_subweapon_gfx
         
     intercept_get_new_subweapon:
         ; preserve de
@@ -942,10 +945,11 @@ if SUBWEAPONS
         ld (hl), a
         jr loopnext
     
+        ; this function decides what lanterns are replaced with crosses.
     convert_subweapon:
         ; a -> a
         ; converts subweapon 1 to either 1 or 3 depending on value of d.
-        cp $1
+        cp $2
         ret nz
         
         ; if d%2==1
@@ -1129,7 +1133,11 @@ if SUBWEAPONS
     org $7f7f+1
     banksk3
     
-        ; TODO -- replace holy water icon sprite.
+    set_subweapon_gfx:
+        dw $37CB ; swap A
+        set 7, a
+        ldi16a subweapon_gfx_loaded
+        ret
     
     intercept_draw_sprite:
         ld a, $c3
