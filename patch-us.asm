@@ -80,12 +80,20 @@ current_subweapon:
 org $3FF1+1
 banksk0
 
+if SUBWEAPONS
+is_moving_downward:
+    ld hl,$C010
+    add a, (hl)
+    and $F0
+    ret
+endif
+
 if CONTROL
     ld_speed_hack_velocity_r_cb:
         ld hl, speed_hack_velocity_r_cb
         jp read_word_cb
-    end_bank0:
 endif
+end_bank0:
 
 ; bits 0-1: subweapon gfx in slot 0 (ALT)
 ; bits 4-5: subweapon gfx in slot 1 (CURRENT)
@@ -740,39 +748,6 @@ if SUBWEAPONS
 endif
 
 if CONTROL
-    lr_ctrl:
-        ld l, 2
-        ld h, d
-        bit 1, (hl)
-        jr z, new_jump_routine_exec
-        xor a
-        
-        ld hl,$C010
-        add a, (hl)
-        and $F0
-        ret nz
-        
-    new_jump_routine_exec:
-
-    if INERTIA
-        ; store previous x velocity
-        call entity_get_x_velocity
-        push bc
-    endif
-
-        ; push facing;
-        ld e, 9
-        ld a, (de)
-        push af
-        
-        ldai16 input_held
-        pushhl fin_set_lrspeed
-        and 3
-        jp z, entity_set_x_velocity_0
-        pushhl mbc_swap_bank_1
-        pushhl belmont_set_hvelocity_from_input
-        jp mbc_swap_bank_6
-
     fin_set_lrspeed:
         
         ; a <- substate. if not attacking, don't reset facing.
@@ -789,46 +764,10 @@ if CONTROL
     fin_lr_ctrl:
 
     if INERTIA
-            ; bc <- new velocity
-            call entity_get_x_velocity
-            
-            ; hl <- previous velocity
-            pop hl
-            push hl
-            
-            ; hl <- hl - bc
-            dec bc
-            ld a,c
-            cpl
-            ld c,a
-            ld a,b
-            cpl
-            ld b,a
-            add hl, bc
-            
-            bit 7, h ; z <- ~ sign of (prev - new)
-            pop bc ; hl <- previous velocity
-            jr nz, new_gt_prev
-        new_lte_prev:
-            xor a
-            or l
-            or h
-            
-            jr z, fin_inertia ; equal; skip.
-            ld hl,$FFF0
-            db $CA ; skip next 2 bytes of instruction.
-            
-        new_gt_prev:
-            ld hl,$0010
-
-        ; new velocity <- hl
-        add_bc_to_hl_and_assign_to_xvelocity:
-            add hl, bc
-            ld b, h
-            ld c, l
-            call entity_set_x_velocity
-            
-        fin_inertia:
+        pop bc
+        pushhl inertia_bank3
+        jp mbc_swap_bank_3
+        inertia_return_bank1:
     endif
 
     if VCANCEL
@@ -838,14 +777,9 @@ if CONTROL
     
         ret nz
         
-        ; check if moving downward
-        ld a, 1
-        
         ; is moving downward
-        ld hl,$C010
-        add a, (hl)
-        and $F0
-        
+        ld a, 1
+        call is_moving_downward
         ret z
         
         ; zero velocity
@@ -854,95 +788,47 @@ if CONTROL
     else
         ret
     endif
+    
+     lr_ctrl:
+        ld l, 2
+        ld h, d
+        bit 1, (hl)
+        jr z, new_jump_routine_exec
+        xor a
+        
+        call is_moving_downward
+        ret nz
+        
+    new_jump_routine_exec:
+
+        if INERTIA
+            pushbc inertia_return_bank1
+            
+            ; store previous x velocity
+            call entity_get_x_velocity
+            push bc
+        endif
+
+        ; push facing;
+        ld e, 9
+        ld a, (de)
+        push af
+
+        ldai16 input_held
+        pushhl fin_set_lrspeed
+        and 3
+        jp z, entity_set_x_velocity_0
+        pushhl mbc_swap_bank_1
+        pushhl belmont_set_hvelocity_from_input
+        if SUBWEAPONS
+            jr jp_to_mbc_swap_bank_6
+        else
+            jp mbc_swap_bank_6
+        endif
+
 endif ; CONTROL
 
 if SUBWEAPONS
-    intercept_load_entity:
-        ;(existing code)
-        res 7, a
-        ld (de), a
-        
-        ; check that this would be a weapon index
-        cp $3
-        ret nc
-        
-        ; preserve de.
-        push de
-        pushhl pop_de_ret
-        
-        ; check if d in range d4-d7 inclusive
-        ; if so, this isn't a lantern, so we quit.
-        ld a, $d3
-        cp d
-        ret nc
-        ;ld a, $d8
-        ;cp d
-        ;ret c
-        jr allocate_subweapon_gfx
-        
-    intercept_get_new_subweapon:
-        ; preserve de
-        push de
-        pushhl pop_de_ret
-        
-        call convert_subweapon
-        ldi16a current_subweapon
-        ; fallthrough
-        
-    allocate_subweapon_gfx:
-        ldai16 current_subweapon
-        ld hl, $c300
-        or a
-        call z, orhl
-        cp (hl)
-        call nz, swaporhl_ifnz
-        
-        ; active goes in slot 1
-        dw $37CB ; swap A
-        
-        or $C0 ; "needs update" flag and "is allocated" flag
-        
-        ld hl, subweapon_gfx_loaded
-        ld (hl), a
-        
-        ; scan through lanterns to find what other subweapons are there
-        ; check lanterns, which are at indices d4, d5, d6, and d7.
-        ld de, $d300
-    loopnext:
-        inc d
-        ld a, $d8
-        cp d
-        ret z
-        
-        ; check if value is 1 or 2
-        ld a, (de)
-        or a
-        jr z, loopnext
-        cp $3
-        jr nc, loopnext
-        
-        ; b <- index of subweapon
-        call convert_subweapon
-        ld b, a
-        
-        ; check against gfx slot 0 (ALT)
-        ld a, (hl)
-        and $03
-        jr z, assign
-        cp b
-        jr z, loopnext
-        
-        ; does not match slot 0 (ALT)
-        ; sadly replace this lantern with a small consolation heart.
-        ld a, $5
-        ld (de), a
-        jr loopnext
-    
-    assign:
-        ld a, (hl)
-        or b
-        ld (hl), a
-        jr loopnext
     
         ; this function decides what lanterns are replaced with crosses.
     convert_subweapon:
@@ -1034,6 +920,7 @@ if SUBWEAPONS
         
     vblank_intercept_return:
         pop de ; this is pushed by caller. mixed save/restore.
+    jp_to_mbc_swap_bank_6:
         jp mbc_swap_bank_6
         
     _copy:
@@ -1123,6 +1010,93 @@ if SUBWEAPONS
         dw vblank_intercept_1
         dw vblank_intercept_3
         dw vblank_intercept_2
+        
+    intercept_load_entity:
+        ;(existing code)
+        res 7, a
+        ld (de), a
+        
+        ; check that this would be a weapon index
+        cp $3
+        ret nc
+        
+        ; preserve de.
+        push de
+        pushhl pop_de_ret
+        
+        ; check if d in range d4-d7 inclusive
+        ; if so, this isn't a lantern, so we quit.
+        ld a, $d3
+        cp d
+        ret nc
+        ;ld a, $d8
+        ;cp d
+        ;ret c
+        jr allocate_subweapon_gfx
+        
+    intercept_get_new_subweapon:
+        ; preserve de
+        push de
+        pushhl pop_de_ret
+        
+        call convert_subweapon
+        ldi16a current_subweapon
+        ; fallthrough
+        
+    allocate_subweapon_gfx:
+        ldai16 current_subweapon
+        ld hl, $c300
+        or a
+        call z, orhl
+        cp (hl)
+        call nz, swaporhl_ifnz
+        
+        ; active goes in slot 1
+        dw $37CB ; swap A
+        
+        or $C0 ; "needs update" flag and "is allocated" flag
+        
+        ld hl, subweapon_gfx_loaded
+        ld (hl), a
+        
+        ; scan through lanterns to find what other subweapons are there
+        ; check lanterns, which are at indices d4, d5, d6, and d7.
+        ld de, $d300
+    loopnext:
+        inc d
+        ld a, $d8
+        cp d
+        ret z
+        
+        ; check if value is 1 or 2
+        ld a, (de)
+        or a
+        jr z, loopnext
+        cp $3
+        jr nc, loopnext
+        
+        ; b <- index of subweapon
+        call convert_subweapon
+        ld b, a
+        
+        ; check against gfx slot 0 (ALT)
+        ld a, (hl)
+        and $03
+        jr z, assign
+        cp b
+        jr z, loopnext
+        
+        ; does not match slot 0 (ALT)
+        ; sadly replace this lantern with a small consolation heart.
+        ld a, $5
+        ld (de), a
+        jr loopnext
+    
+    assign:
+        ld a, (hl)
+        or b
+        ld (hl), a
+        jr loopnext
     end_bank1:
 endif    
 
@@ -1144,6 +1118,47 @@ spawn_common_bank3:
     pushhl allocate_subweapon_gfx
     jp mbc_swap_bank_1
 endif
+
+if INERTIA
+    inertia_sub_bank3:
+        ; hl <- previous velocity
+        pop hl
+        push hl
+        
+        ; hl <- hl - bc
+        dec bc
+        ld a,c
+        cpl
+        ld c,a
+        ld a,b
+        cpl
+        ld b,a
+        add hl, bc
+        
+        bit 7, h ; z <- ~ sign of (prev - new)
+        pop bc ; hl <- previous velocity
+        jr nz, new_gt_prev
+    new_lte_prev:
+        xor a
+        or l
+        or h
+        
+        ret z ; equal; skip.
+        ld hl,$FFF0
+        db $CA ; skip next 2 bytes of instruction.
+        
+    new_gt_prev:
+        ld hl,$0010
+
+    ; new velocity <- hl
+    add_bc_to_hl_and_assign_to_xvelocity:
+        add hl, bc
+        ld b, h
+        ld c, l
+        jp entity_set_x_velocity
+endif
+
+end_bank3A:
 
 ; BANK3 (B) -------------------------------------------------------------------------
 
@@ -1205,6 +1220,15 @@ if SUBWEAPONS
         db $40 ; flags
         db $f8, $00, $81
         db $20 ; flags
+        
+    if INERTIA
+        inertia_bank3:
+            pushhl mbc_swap_bank_1
+            push bc
+            ; bc <- new velocity
+            call entity_get_x_velocity
+            jp inertia_sub_bank3
+    endif
     
     ; MUST BE <= $7FCF
     end_bank3:
