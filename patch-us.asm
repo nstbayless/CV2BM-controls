@@ -416,6 +416,16 @@ if SUBWEAPONS
         cp (hl) ; compare gfx loaded in slot 1 with current subweapon
         push de
         
+        ; fix eyeball response to cross
+        org $487C
+        banksk1
+        bit 1, (hl)
+        jr nz, $48a5
+        bit 7, (hl)
+        jr nz, $48b8
+        
+        
+        
     org $42CF
     banksk1
         call convert_subweapon
@@ -987,10 +997,19 @@ if SUBWEAPONS
         ; hl <- &subweapon_gfx_loaded
         pop hl 
         
-        ; abort if buffer already used
+    if (VCANCEL == 0) | (INERTIA == 0)
+        ; abort if buffer is more than half full
+        ldai16 vram_transfer_index
+        cp $c1
+        jr nc, vblank_intercept_return
+    else
+        ; abort if buffer is not empty 
+        ; (this saves a byte, but causes a brief graphical glitch at the end of rock palace.)
+        ; TODO -- if we can save a byte, remove this version.
         ldai16 vram_transfer_buffer
         or a
         jr nz, vblank_intercept_return
+    endif
         
         ; a <- (subweapon_gfx_loaded)
         ld a, (hl)

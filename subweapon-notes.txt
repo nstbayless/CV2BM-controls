@@ -1,0 +1,71 @@
+cloud:
+    1. D7/water
+    2. (droppy ropes) D4/Axe
+    3. D5/Axe
+    4. (ending) D5/Holy Water
+
+Crystal 
+    1. D4/Axe
+    2. D4/Holy Water
+    3. D5/Axe
+    4. D4/Holy Water
+    5. D4/Axe
+    6. D6/Axe
+    7. D6/Holy Water
+
+plant castle
+    1. (third screen) D5/holy water
+    2. (ropes) D7/Axe
+    3. (bridge) D4/Holy water
+    4. (near end) D6/axe
+
+rock:
+    1. D5/Holy Water
+    2. (extrudes) D4/Axe
+    3 (stalactites). D5/water
+    4 (eyeballs) D7/Axe
+    5 (drop) D6/Holy Water
+
+Dracula
+    1. (ropes) D4/Axe
+    2. (ropes) D5/Holy Water
+    3. (platform) D4/Axe
+    4. (platforms and extrudes) D4/Axe
+    
+Drac 2
+    1. (platforms) D4/Holy Water
+    2. (falling plats) D4/Axe
+    3. (difficult) D4/Axe
+    4. (near soleiyu) D4/Axe
+    5. (near soleiyu) D5/Holy water
+
+06:4644 - checks if subweapon is 1 or 2.
+06:47b7 - fire subweapon
+00:378b - update hearts counter?
+
+06:4849 - calls 49b7
+06:49b7 - reads c300, branches two one of two jumptables based on result.
+
+06:4a60/J.4a5E - axe/J.cross jumptable
+06:4a64/J.4a64 - axe routine, not yet appeared
+06:4a9f/J.4a97 - axe routine, in air
+06:J.4aC2 - cross routine, return
+06:482f - axe animation data
+
+06:49C4/J.49C2 - holy water jumptable
+06:49CA/J.49C8 - holy water, not yet appeared
+06:4a01 - holy water in air
+06:4a42 - holy water fire.
+
+00:3C04 - set property 8 (collision related?) to 1.
+3dcc - set bits 0 of property 13 and E
+
+7f6d...
+
+plan B:
+    - figure out rotation
+
+plan A:
+    - try removing offset
+    - copy $40 bytes at a time
+    - third stage is *just* the ui update.
