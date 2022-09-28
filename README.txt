@@ -4,14 +4,16 @@
 
 ## Functionality
 
-This hack adjusts Christopher Belmont's control scheme to be more like Mega Man or Symphony of the Night
+There are two optional components to this hack. It can adjust Christopher Belmont's control scheme to be more like Mega Man or Symphony of the Night.
+It can also bring in the all three subweapons into the US ROM.
 
 - Belmont can now turn around and stop in mid-air.
 - Belmont regains control during knockback.
 - (`vcancel` patches only!) When the jump button is released, Belmont immediately starts falling again; this allows the player to make smaller hops if desired.
 - (`inertia` patches only!) When adjusting velocity in mid-air, Belmont only accelerates slowly (rather than changing direction instantaneously).
 
-In addition, there's another parameter, `subweapons`: enabling all three subweapons (holy water, axe, and cross) in one ROM.
+In addition, there's another parameter, `subweapons`: enabling all three subweapons (holy water, axe, and cross) in one ROM. Some subweapon lanterns have been reprovisioned to enable this.
+The `subweapons-only` patch provides only the subweapons and forgoes any change to air movement.
     
 ## Patching Instructions
 
@@ -24,6 +26,8 @@ patch does not modify the checksum, but if you so desire you may wish to correct
 ## Compatability with other hacks
 
 Should be compatible with the speed hack: https://www.romhacking.net/hacks/213/ (apply the speed hack first.)
+
+Any hack which modifies the levels should be applied after this hack.
 
 ## Source Code
 

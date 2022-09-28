@@ -841,17 +841,17 @@ endif ; CONTROL
 if SUBWEAPONS
     
         ; this function decides what lanterns are replaced with crosses.
+        ; (searchtags: #replace #convert #substitute)
     convert_subweapon:
         ; a -> a
-        ; converts subweapon 1 to either 1 or 3 depending on value of d.
-        cp $2
-        ret nz
+        ; converts subweapon depending on d
         
-        ; if d%2==1
+        ; return if d is even
         bit 0, d
         ret z
         
-        ld a, $3
+        ; otherwise, increment (holywater -> cross)
+        inc a
         ret
         
     vblank_intercept_0:
@@ -997,19 +997,10 @@ if SUBWEAPONS
         ; hl <- &subweapon_gfx_loaded
         pop hl 
         
-    if (VCANCEL == 0) | (INERTIA == 0)
         ; abort if buffer is more than half full
         ldai16 vram_transfer_index
         cp $c1
         jr nc, vblank_intercept_return
-    else
-        ; abort if buffer is not empty 
-        ; (this saves a byte, but causes a brief graphical glitch at the end of rock palace.)
-        ; TODO -- if we can save a byte, remove this version.
-        ldai16 vram_transfer_buffer
-        or a
-        jr nz, vblank_intercept_return
-    endif
         
         ; a <- (subweapon_gfx_loaded)
         ld a, (hl)
@@ -1251,4 +1242,9 @@ if SUBWEAPONS
     
     ; MUST BE <= $7FCF
     end_bank3:
+endif
+
+; items
+if SUBWEAPONS
+    include "items.asm"
 endif
