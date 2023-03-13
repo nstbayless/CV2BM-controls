@@ -35,6 +35,8 @@ banksk19: macro
     seek $4000 * (0x19-1) + $
 endm
 
+; note: be80, bfec might have some useful space?
+
 ; z80asm seems to have trouble emitting ld a, ($imm) for some reason.
 ldai16: macro addr
     db $FA
@@ -381,8 +383,8 @@ if SUBWEAPONS
         ; note that $3Df8 is basically space
         ; we can replace RST 30 with it.
         
-        org $F2
-        banksk0
+    org $F2
+    banksk0
             ; [$E bytes available]
         subweapon_gfx_sources:
             ; (9 bytes)
@@ -399,17 +401,17 @@ if SUBWEAPONS
             or (hl)
             ret
         
-        org $0B59
-        banksk0
+    org $0B59
+    banksk0
         call intercept_load_entity
         call $0002
         
-        org $2E48
-        banksk0
+    org $2E48
+    banksk0
         ;call intercept_clear_subweapon_gfx
         
-        org $3888
-        banksk0 
+    org $3888
+    banksk0 
         jp intercept_get_new_subweapon
         nop
     set_subweapon_icon:
@@ -417,14 +419,33 @@ if SUBWEAPONS
         push de
         
         ; fix eyeball response to cross
-        org $487C
-        banksk1
+    org $4873
+    banksk1
+        call eyeball_explode_check_ext
+        ; OPT: could compress this using rom-phf
+        ld l, $08
         bit 1, (hl)
-        jr nz, $48a5
+        jr nz, eyeball_explode
+        bit 2, (hl)
+        jr nz, eyeball_melt
         bit 7, (hl)
-        jr nz, $48b8
+        jr nz, eyeball_explode
+    eyeball_ok:
         
+    org $48a5
+    eyeball_explode:
         
+    org $48b8
+    eyeball_melt:
+        
+    org $2321
+    banksk0
+    eyeball_explode_check_ext:
+        call $47C0
+        call $38EC
+        ld h, d
+        ret
+        ; [8 bytes]
         
     org $42CF
     banksk1
