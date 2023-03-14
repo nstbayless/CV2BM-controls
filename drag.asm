@@ -8,7 +8,7 @@ dragphysics_adjust:
     ; hl <- belmont x velocity minus $5E
     ld bc, $FFA2
     ld hl, $c014
-    call ld_hl_hl
+    ldhlhl
     ; double speed if > 0
     bit 7, h
     call drag_calc
@@ -28,9 +28,6 @@ negative_drag:
     
 drag_add_to_xvelocity:
     ; OPT: probably compressable
-    ; bc <- hl
-    ; hl <- $c016
-    ; (hl) += bc
     
     ld e, $16
     ld a, (de)
@@ -42,6 +39,6 @@ drag_add_to_xvelocity:
     ld (de), a
     ret
     
-    if $ - dragphysics_adjust > 46
-        panic
-    endif
+if $ - dragphysics_adjust > 46
+    panic
+endif

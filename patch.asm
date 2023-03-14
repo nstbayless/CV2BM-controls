@@ -26,30 +26,7 @@ else
     ADJUST_DRAGON_PHYSICS: equ 0
 endif
 
-; call bank after org, seeks to $ in given bank.
-banksk:  macro n
-    seek n ? (n - 1) * $4000 + $ : $
-endm
-
-banksk1: macro
-    seek $4000 * (1-1) + $
-endm
-
-banksk6: macro
-    seek $4000 * (6-1) + $
-endm
-
-banksk7: macro
-    seek $4000 * (7-1) + $
-endm
-
-banksk16: macro
-    seek $4000 * (0x16-1) + $
-endm
-
-banksk19: macro
-    seek $4000 * (0x19-1) + $
-endm
+include "macro.asm"
 
 ; RAM addresses
 org $C886
@@ -81,17 +58,6 @@ else
         jp read_word_cb
     end_bank0:
 endif
-
-; z80asm seems to have trouble emitting ld a, ($imm) for some reason.
-ldai16: macro addr
-    db $FA
-    defw addr
-endm
-
-pushhl: macro value
-    ld hl, value
-    push hl
-endm
 
 if KGBC4EU_LAYOUT
     ; clobbers b
@@ -160,6 +126,9 @@ if KGBC4EU_LAYOUT
     entity_get_x_velocity:
     
 else
+    org $000C
+    ld_hl_hl:
+
     org $35A9
     mbc_swap_bank_1:
 
@@ -224,6 +193,40 @@ else
 
 endif; ! KGBC4EU_LAYOUT
 
+if ADJUST_DRAGON_PHYSICS
+    if rom_type == rom_us
+        org $4be8
+        banksk6
+    endif
+    if rom_type == rom_jp
+        org $4c03
+        banksk6
+    endif
+    if rom_type == rom_kgbc4eu
+        org $4c7c
+        banksk16
+    endif
+    
+    include "drag.asm"
+    
+    if rom_type == rom_us
+        org $5f00
+        banksk6
+    endif
+    if rom_type == rom_jp
+        org $78a0
+        banksk6
+    endif
+    if rom_type == rom_kgbc4eu
+        org $77e1
+        banksk16
+    endif
+    
+    if ADJUST_DRAGON_PHYSICS
+    include "dragcalc.asm"
+    endif
+endif
+
 ; insert into free space
 if KGBC4EU_LAYOUT
     org $76D0
@@ -235,7 +238,7 @@ if rom_type == rom_us
 endif
 if rom_type == rom_jp
     org $7FE4+1
-    banksk6
+    banksk6    
 endif
 
 if KGBC4EU_LAYOUT

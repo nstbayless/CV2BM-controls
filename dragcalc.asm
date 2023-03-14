@@ -38,7 +38,7 @@ drag_calc_zero:
     ld c, a
     pop hl
     ret
-    
-    if $ - drag_calc >= $50
-        panic
-    endif
+
+if $ - drag_calc > 36
+    panic
+endif
