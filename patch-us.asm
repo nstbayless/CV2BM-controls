@@ -1,4 +1,4 @@
-if CONTROL
+if INERTIA
     ADJUST_DRAGON_PHYSICS: equ 1
 else
     ADJUST_DRAGON_PHYSICS: equ 0
@@ -298,8 +298,8 @@ vram_transfer_index:
 ; PATCHES --------------------------------------------------------------------
 
 if ADJUST_DRAGON_PHYSICS
-    org $4BE8
-    banksk6
+org $4BE8
+banksk6
     
     ; hl <- belmont x velocity pixel
     ld a, $00
@@ -308,10 +308,13 @@ if ADJUST_DRAGON_PHYSICS
     ldi16a $ca80
     
     ; hl <- belmont x velocity minus $5E
-    ; a <- x belmont x position
     ld bc, $FFA2
     ld hl, $c014
     call ld_hl_hl
+    ; double speed if > 0
+    bit 7, h
+    call drag_calc
+    
     db $E7 ; RST $20: a <- x position of entity
     add hl, bc
     
@@ -327,17 +330,71 @@ negative_drag:
     
 drag_add_to_xvelocity:
     ; OPT: probably compressable
-    ldai16 $c016
+    ; bc <- hl
+    ; hl <- $c016
+    ; (hl) += bc
+    
+    ld e, $16
+    ld a, (de)
     add a, l
-    ldi16a $c016
-    ldai16 $c017
+    ld (de), a
+    ld e, $17
+    ld a, (de)
     adc a, h
-    ldi16a $c017
+    ld (de), a
     ret
     
     if $ > $4c16
         panic
     endif
+    
+org $5f00
+banksk6
+drag_calc:
+    push hl
+    jr nz, drag_calc_negative
+    
+adjust_bc:
+    ld a, h
+    cp $0
+    jr nz, drag_calc_zero
+    ld a, l
+    cp $5e*2
+    jr nc, drag_calc_zero
+
+decrease_bc:
+    ; hl /= 2
+    sra h
+    rr l
+    add hl, bc
+    ld b, h
+    ld c, l
+    
+    pop hl
+    ret
+        
+drag_calc_negative:
+    dec hl
+    ld a, l
+    cpl
+    ld l, a
+    ld a, h
+    cpl
+    ld h, a
+    jr adjust_bc
+    
+
+drag_calc_zero:
+    xor a
+    ld b, a
+    ld c, a
+    pop hl
+    ret
+    
+    if $ >= $5f50
+        panic
+    endif
+
 endif
 
 if CONTROL
