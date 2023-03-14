@@ -517,8 +517,8 @@ LvlDrac2_4_Items:
 org $62a8
 banksk3
 LvlDrac3_0_Items:
-    db $07, $54, SLOT0, ENT_ITM_COIN,        $b0, $40
-    db $08, $34, SLOT1, ENT_ITM_WHIP_CHAIN,  $b0, $40
-    db $09, $14, SLOT2, ENT_ITM_HEARTBIG,    $b0, $40
-    db $0a, $38, SLOT3, ENT_ITM_WHIP_FIRE,   $b0, $40
+    db $07, $54, SLOT3, ENT_ITM_HCROSS,       $b0, $40
+    db $08, $34, SLOT1, ENT_ITM_WHIP_CHAIN,   $b0, $40
+    db $09, $14, SLOT2, ENT_ITM_AXE,          $b0, $40
+    db $0a, $38, SLOT0, ENT_ITM_WHIP_FIRE,    $b0, $40
     ENDROOMS
