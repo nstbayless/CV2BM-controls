@@ -1,3 +1,9 @@
+if CONTROL
+    ADJUST_DRAGON_PHYSICS: equ 1
+else
+    ADJUST_DRAGON_PHYSICS: equ 0
+endif
+
 ; call bank after org, seeks to $ in given bank.
 banksk:  macro n
     seek n ? (n - 1) * $4000 + $ : $
@@ -104,11 +110,17 @@ end_bank0:
 org $C3E8
 subweapon_gfx_loaded:
 
+org $000C
+ld_hl_hl:
+
 org $0c52
 unk_0c52:
 
 org $0D9E
 pop_hl_ret:
+
+org $1176
+store_dx1f_3:
 
 org $11D8
 pop_de_ret:
@@ -121,6 +133,9 @@ load_c882_and_F:
 
 org $2950
 unk_2950:
+
+org $2970
+negative_bc:
 
 org $297b
 leftshift_bc_4:
@@ -176,6 +191,15 @@ entity_animate:
 org $38E0
 ; sets animation to (bc):(bc+1)
 entity_set_animation:
+
+org $3b3c
+    ; hl < (hl)
+    entity_set_x_velocity_ihl:
+org $3b3d
+    ; bc <- hl
+    ; jp entity_set_x_velocity
+    entity_set_x_velocity_hl:
+
 
 org $3DCC
 entity_reset_bit_0_prop_13_0E:
@@ -272,6 +296,49 @@ org $c88c
 vram_transfer_index:
 
 ; PATCHES --------------------------------------------------------------------
+
+if ADJUST_DRAGON_PHYSICS
+    org $4BE8
+    banksk6
+    
+    ; hl <- belmont x velocity pixel
+    ld a, $00
+    ldi16a $ca82
+    ld a, $5e
+    ldi16a $ca80
+    
+    ; hl <- belmont x velocity minus $5E
+    ; a <- x belmont x position
+    ld bc, $FFA2
+    ld hl, $c014
+    call ld_hl_hl
+    db $E7 ; RST $20: a <- x position of entity
+    add hl, bc
+    
+    bit 7, h
+    jr nz, negative_drag
+    
+    ; check >= $f8 (or == 0, which is not possible)
+    add $08
+    
+negative_drag:
+    cp $09
+    ret c
+    
+drag_add_to_xvelocity:
+    ; OPT: probably compressable
+    ldai16 $c016
+    add a, l
+    ldi16a $c016
+    ldai16 $c017
+    adc a, h
+    ldi16a $c017
+    ret
+    
+    if $ > $4c16
+        panic
+    endif
+endif
 
 if CONTROL
     ; belmont update jumptable
@@ -445,7 +512,8 @@ if SUBWEAPONS
         call $38EC
         ld h, d
         ret
-        ; [8 bytes]
+    
+        ; [8 bytes free]
         
     org $42CF
     banksk1
@@ -576,9 +644,10 @@ if SUBWEAPONS
         
         ; set prop $1f to $03
         ; (unknown)
-        ld e, $1F
-        ld a, $03
-        ld (de), a
+        ;ld e, $1F
+        ;ld a, $03
+        ;ld (de), a
+        call store_dx1f_3
         
         ld bc, $FC00
         call entity_set_y_velocity
@@ -694,6 +763,8 @@ if SUBWEAPONS
         ; switch to 'return' state
         db $F7; $rst 30
         jp unk_3d70
+        
+    ; [2 bytes free]
     
     ; MUST BE <= $4AD2
     end_subweapon_region:
@@ -796,6 +867,8 @@ if CONTROL
 
     if INERTIA
         pop bc
+        
+        ; farcall3 inertia_bank3 (return address inertia_return_bank1 is already on stack from earlier.)
         pushhl inertia_bank3
         jp mbc_swap_bank_3
         inertia_return_bank1:
@@ -820,11 +893,19 @@ if CONTROL
         ret
     endif
     
-     lr_ctrl:
+    ; ------------------------------
+    ; True start of the air-control logic begins here.
+    lr_ctrl:
+        ; if ~(substate & 1) -- in other words, check if not knockback
         ld l, 2
         ld h, d
         bit 1, (hl)
         jr z, new_jump_routine_exec
+        
+        ; we're in knockback here. return if in knockback and not moving downward.
+        
+        ; OPT: we could remove this just to save some space, no other reason.
+        ; it would mean that we regain control slightly earlier.
         xor a
         
         call is_moving_downward
@@ -833,9 +914,10 @@ if CONTROL
     new_jump_routine_exec:
 
         if INERTIA
+            ; supplies return that is needed later (return address for inertia_bank3)
             pushbc inertia_return_bank1
             
-            ; store previous x velocity
+            ; push store previous x velocity
             call entity_get_x_velocity
             push bc
         endif
@@ -844,6 +926,11 @@ if CONTROL
         ld e, 9
         ld a, (de)
         push af
+        
+        ; if holding neither left nor right:
+        ;   jp entitiy_set_x_velocity_0 -> fin_set_lrspeed (-> inertia_return_bank1).
+        ; if holding either left or right:
+        ;   farcall6 belmont_set_hvelocity_from_input -> fin_set_lrspeed (-> inertia_return_bank1).
 
         ldai16 input_held
         pushhl fin_set_lrspeed
@@ -851,6 +938,9 @@ if CONTROL
         jp z, entity_set_x_velocity_0
         pushhl mbc_swap_bank_1
         pushhl belmont_set_hvelocity_from_input
+        
+        ; these both do the same thing, just one
+        ; is more compressed.
         if SUBWEAPONS
             jr jp_to_mbc_swap_bank_6
         else
@@ -1151,42 +1241,38 @@ spawn_common_bank3:
 endif
 
 if INERTIA
+        ; precondition: bc = new velocity
     inertia_sub_bank3:
         ; hl <- previous velocity
         pop hl
         push hl
         
         ; hl <- hl - bc
-        dec bc
-        ld a,c
-        cpl
-        ld c,a
-        ld a,b
-        cpl
-        ld b,a
+        call negative_bc
         add hl, bc
         
         bit 7, h ; z <- ~ sign of (prev - new)
         pop bc ; hl <- previous velocity
         jr nz, new_gt_prev
     new_lte_prev:
-        xor a
-        or l
+    
+        ; ret if l|h == 0
+        ld a, l
         or h
-        
         ret z ; equal; skip.
+        
         ld hl,$FFF0
         db $CA ; skip next 2 bytes of instruction.
         
     new_gt_prev:
-        ld hl,$0010
+        ld hl,$0010 ;CAREFUL: hi byte ($00) is punned as nop.
 
     ; new velocity <- hl
     add_bc_to_hl_and_assign_to_xvelocity:
         add hl, bc
-        ld b, h
-        ld c, l
-        jp entity_set_x_velocity
+        jp entity_set_x_velocity_hl
+    
+    ; [6 bytes free]
 endif
 
 end_bank3A:
