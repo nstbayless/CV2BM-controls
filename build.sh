@@ -147,8 +147,8 @@ build patch kgbc4eu cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" 
 build patch kgbc4eu cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build patch kgbc4eu cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
-cp README-controls.txt "$DST/cv2-controls"
-cp README-subweapons.txt "$DST/cv2-subweapons"
+cp README-controls.txt "$DST/cv2gb-controls"
+cp README-subweapons.txt "$DST/cv2gb-subweapons"
 
 comptest us test subweapons-no-vcancel cv2gb-subweapons subweapons cv2gb-controls no-vcancel
 comptest us test subweapons-vcancel cv2gb-subweapons subweapons cv2gb-controls vcancel
@@ -160,11 +160,11 @@ comptest us test subweapons-vcancel cv2gb-controls vcancel cv2gb-subweapons subw
 comptest us test subweapons-inertia-no-vcancel cv2gb-controls inertia-no-vcancel cv2gb-subweapons subweapons
 comptest us test subweapons-inertia-vcancel cv2gb-controls inertia-vcancel cv2gb-subweapons subweapons
 
-if [ -f "cv2-controls.zip" ]
+if [ -f "cv2gb-controls.zip" ]
 then
     rm *.zip
 fi
-7z a "./cv2-controls.zip" "./$DST/cv2-controls"
-7z a "./cv2-subweapons.zip" "./$DST/cv2-subweapons"
+7z a "./cv2gb-controls.zip" "./$DST/cv2gb-controls"
+7z a "./cv2gb-subweapons.zip" "./$DST/cv2gb-subweapons"
 
 exit 0
