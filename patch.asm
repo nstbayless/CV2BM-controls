@@ -20,6 +20,11 @@ else
     endif
 endif
 
+if INERTIA
+    ADJUST_DRAGON_PHYSICS: equ 1
+else
+    ADJUST_DRAGON_PHYSICS: equ 0
+endif
 
 ; call bank after org, seeks to $ in given bank.
 banksk:  macro n

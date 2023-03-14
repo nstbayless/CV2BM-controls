@@ -1,7 +1,10 @@
 set -e
 
 FLIPS="./flips/flips-linux"
-DST="cv2gb-controls"
+DST="build"
+TESTROM0="test0.gb"
+TESTROM1="test1.gb"
+TESTROM2="test2.gb"
 
 if ! command -v z80asm &> /dev/null
 then
@@ -46,9 +49,11 @@ function checkmax() {
 function build() {
     BASEPATCH=$1
     BASEROM=$2
-    BUILDNAME=$BASEROM-$3
-    echo "Assembling patch $BUILDNAME"
+    EXPORT=$3
+    BUILDNAME=$BASEROM-$4
+    echo "Assembling patch $EXPORT/$BUILDNAME"
     chmod a-w base-$BASEROM.gb
+    shift
     shift
     shift
     shift
@@ -75,7 +80,7 @@ function build() {
     $FLIPS -c --ips base-$BASEROM.gb $BUILDNAME.gb $BUILDNAME.ips
     
     # TODO: error if any of these end exceed 7fff (or 3fff for bank0).
-    echo "$DST/$BASEROM $BUILDNAME"
+    echo "$DST/$EXPORT/$BASEROM $BUILDNAME"
     
     set +e
     grep "end_bank[0-9A-Fa-f]\+:" $BUILDNAME.lbl
@@ -85,45 +90,81 @@ function build() {
     checkmax "$BUILDNAME.lbl" end_bank0 3fff
     checkmax "$BUILDNAME.lbl" end_bank1 7fff
     checkmax "$BUILDNAME.lbl" end_bank1B 7fff
-    if ! echo "$BUILDNAME" | grep -q subweapons && echo "$BASEROM" | grep -q us; then
-        checkmax "$BUILDNAME.lbl" end_bank1 7ef0
-    fi
     checkmax "$BUILDNAME.lbl" end_bank3A 6a00
     checkmax "$BUILDNAME.lbl" end_bank3 7fcf
     checkmax "$BUILDNAME.lbl" end_bank4 7fff
     checkmax "$BUILDNAME.lbl" end_bank6 7fff
     checkmax "$BUILDNAME.lbl" end_bank7 7fff
 
-    mkdir -p "$DST/$BASEROM"
-    cp "$BUILDNAME.ips" "$DST/$BASEROM"
+    mkdir -p "$DST/$EXPORT/$BASEROM"
+    cp "$BUILDNAME.ips" "$DST/$EXPORT/$BASEROM"
 }
 
-build patch-us us subweapons-only "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0"
-build patch    us no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch    us vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch    us inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch    us inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch-us us subweapons-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us subweapons-vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us subweapons-inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us subweapons-inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+function simplemd5() {
+    md5sum "$1" | cut -d ' ' -f 1
+}
 
-build patch jp vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+function comptest() {
+    BASEROM=$1
+    EXPORT0=$2
+    BUILDNAME0="$BASEROM-$3"
+    EXPORT1=$4
+    BUILDNAME1="$BASEROM-$5"
+    EXPORT2=$6
+    BUILDNAME2="$BASEROM-$7"
+    echo "Test: comparing $EXPORT0/$BUILDNAME0 == $EXPORT1/$BUILDNAME1 x $EXPORT2/$BUILDNAME2"
+    PATHIPS0="$DST/$EXPORT0/$BASEROM/$BUILDNAME0.ips"
+    PATHIPS1="$DST/$EXPORT1/$BASEROM/$BUILDNAME1.ips"
+    PATHIPS2="$DST/$EXPORT2/$BASEROM/$BUILDNAME2.ips"
+    $FLIPS -a "$PATHIPS0" "base-$BASEROM.gb" "$TESTROM0" > /dev/null
+    $FLIPS -a "$PATHIPS1" "base-$BASEROM.gb" "$TESTROM1" > /dev/null
+    $FLIPS -a "$PATHIPS2" "$TESTROM1"        "$TESTROM2" > /dev/null
+    
+    if [ $(simplemd5 "$TESTROM0") != $(simplemd5 "$TESTROM2") ]
+    then
+        echo "ERROR: test failed!"
+        exit 5
+    fi
+}
 
-build patch kgbc4eu vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch-us us cv2gb-subweapons subweapons "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0"
+build patch-us us cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch-us us cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch-us us cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch-us us cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch-us us test subweapons-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+build patch-us us test subweapons-vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+build patch-us us test subweapons-inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+build patch-us us test subweapons-inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
 
-cp README.txt "$DST"
+build patch jp cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch jp cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch jp cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch jp cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
-if [ -f "$DST.zip" ]
+build patch kgbc4eu cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch kgbc4eu cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch kgbc4eu cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch kgbc4eu cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+
+cp README-controls.txt "$DST/cv2-controls"
+cp README-subweapons.txt "$DST/cv2-subweapons"
+
+comptest us test subweapons-no-vcancel cv2gb-subweapons subweapons cv2gb-controls no-vcancel
+comptest us test subweapons-vcancel cv2gb-subweapons subweapons cv2gb-controls vcancel
+comptest us test subweapons-inertia-no-vcancel cv2gb-subweapons subweapons cv2gb-controls inertia-no-vcancel
+comptest us test subweapons-inertia-vcancel cv2gb-subweapons subweapons cv2gb-controls inertia-vcancel
+
+comptest us test subweapons-no-vcancel cv2gb-controls no-vcancel cv2gb-subweapons subweapons
+comptest us test subweapons-vcancel cv2gb-controls vcancel cv2gb-subweapons subweapons
+comptest us test subweapons-inertia-no-vcancel cv2gb-controls inertia-no-vcancel cv2gb-subweapons subweapons
+comptest us test subweapons-inertia-vcancel cv2gb-controls inertia-vcancel cv2gb-subweapons subweapons
+
+if [ -f "cv2-controls.zip" ]
 then
     rm *.zip
 fi
-7z a "./$DST.zip" "./$DST"
+7z a "./cv2-controls.zip" "./$DST/cv2-controls"
+7z a "./cv2-subweapons.zip" "./$DST/cv2-subweapons"
 
 exit 0

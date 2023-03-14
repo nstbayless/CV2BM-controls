@@ -1,33 +1,28 @@
-# Improved Controls & All Subweapons for Castlevania II: Belmont's Revenge (Gameboy)
+# Improved Controls for Castlevania II: Belmont's Revenge (Gameboy)
 
 *By NaOH*
 
 ## Functionality
 
-There are two optional components to this hack. It can adjust Christopher Belmont's control scheme to be more like Mega Man or Symphony of the Night.
-It can also bring in the all three subweapons into the US ROM.
+This hack adjusts Christopher Belmont's control scheme to be more like Mega Man or Symphony of the Night.
 
 - Belmont can now turn around and stop in mid-air.
 - Belmont regains control during knockback.
 - (`vcancel` patches only!) When the jump button is released, Belmont immediately starts falling again; this allows the player to make smaller hops if desired.
 - (`inertia` patches only!) When adjusting velocity in mid-air, Belmont only accelerates slowly (rather than changing direction instantaneously).
-
-In addition, there's another parameter, `subweapons`: enabling all three subweapons (holy water, axe, and cross) in one ROM. Some subweapon lanterns have been reprovisioned to enable this.
-The `subweapons-only` patch provides only the subweapons and forgoes any change to air movement.
     
 ## Patching Instructions
 
 There are patches for each combination of rom (US/EU; JP; EU Konami GB Vol. 4) and for parameters selected (see "Functionality" below). Only one patch should be used.
 Please note that the US and EU roms are the same. You may wish to verify your rom before patching by checking a hash (see "ROM HASHES" below).
 
-Patch using FLIPS or any other IPS patcher. Please note that gameboy roms contain an internal checksum (which is not actually used by the gameboy!) -- this
+Patch using FLIPS or any other IPS patcher. Please note that gameboy roms contain an internal checksum -- this
 patch does not modify the checksum, but if you so desire you may wish to correct the checksum using a utilitiy such as rgbfix.
+In any case, this is purely cosmetic because a real gameboy does not actually verify the checksum.
 
 ## Compatability with other hacks
 
 Should be compatible with the speed hack: https://www.romhacking.net/hacks/213/ (apply the speed hack first.)
-
-Any hack which modifies the levels should be applied after this hack.
 
 ## Source Code
 
