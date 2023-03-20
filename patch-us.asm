@@ -1054,7 +1054,14 @@ if CONTROL
         ld e, 2
         ld a, (de)
         or a
-        jr z, fin_lr_ctrl
+        if VCANCEL_ONLY
+            ; vcancel-only: *always* restore previous facing.
+            nop
+            nop
+        else
+            ; only restore previous facing if whip-attacking
+            jr z, fin_lr_ctrl
+        endif
         
         ; restore previous facing
         ld h, d
@@ -1123,19 +1130,22 @@ if CONTROL
         ld e, 9
         ld a, (de)
         push af
-        
-        ; if holding neither left nor right:
-        ;   jp entitiy_set_x_velocity_0 -> fin_set_lrspeed (-> inertia_return_bank1).
-        ; if holding either left or right:
-        ;   farcall6 belmont_set_hvelocity_from_input -> fin_set_lrspeed (-> inertia_return_bank1).
 
-        ldai16 input_held
-        pushhl fin_set_lrspeed
-        and 3
-        jp z, entity_set_x_velocity_0
-        pushhl mbc_swap_bank_1
-        pushhl belmont_set_hvelocity_from_input
-        jp mbc_swap_bank_6
+        if VCANCEL_ONLY
+            jr fin_set_lrspeed
+        else
+            ; if holding neither left nor right:
+            ;   jp entitiy_set_x_velocity_0 -> fin_set_lrspeed (-> inertia_return_bank1).
+            ; if holding either left or right:
+            ;   farcall6 belmont_set_hvelocity_from_input -> fin_set_lrspeed (-> inertia_return_bank1).
+            ldai16 input_held
+            pushhl fin_set_lrspeed
+            and 3
+            jp z, entity_set_x_velocity_0
+            pushhl mbc_swap_bank_1
+            pushhl belmont_set_hvelocity_from_input
+            jp mbc_swap_bank_6
+        endif
 endif ; CONTROL
 
 if $ > $7fff

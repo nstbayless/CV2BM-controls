@@ -129,25 +129,29 @@ function comptest() {
     fi
 }
 
-build patch-us us cv2gb-subweapons subweapons "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0"
-build patch-us us cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch-us us cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch-us us cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch-us us cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch-us us test subweapons-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us test subweapons-vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us test subweapons-inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
-build patch-us us test subweapons-inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1"
+build patch-us us cv2gb-subweapons subweapons "SUBWEAPONS: equ 1" "CONTROL: equ 0" "VCANCEL: equ 0" "INERTIA: equ 0" "VCANCEL_ONLY: equ 0"
+build patch-us us cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us cv2gb-controls vcancel-only "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 1"
+build patch-us us test subweapons-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us test subweapons-vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us test subweapons-inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us test subweapons-inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 1" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch-us us test subweapons-vcancel-only "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 1" "CONTROL: equ 1" "VCANCEL_ONLY: equ 1"
 
-build patch jp cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch jp cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch jp cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch jp cv2gb-controls vcancel-only "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 1"
+build patch jp cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch jp cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch jp cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
 
-build patch kgbc4eu cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
-build patch kgbc4eu cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
+build patch kgbc4eu cv2gb-controls vcancel "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch kgbc4eu cv2gb-controls vcancel-only "VCANCEL: equ 1" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 1"
+build patch kgbc4eu cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch kgbc4eu cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
+build patch kgbc4eu cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1" "VCANCEL_ONLY: equ 0"
 
 cp README-controls.txt "$DST/cv2gb-controls/README.txt"
 cp README-subweapons.txt "$DST/cv2gb-subweapons/README.txt"
@@ -156,11 +160,13 @@ comptest us test subweapons-no-vcancel cv2gb-subweapons subweapons cv2gb-control
 comptest us test subweapons-vcancel cv2gb-subweapons subweapons cv2gb-controls vcancel
 comptest us test subweapons-inertia-no-vcancel cv2gb-subweapons subweapons cv2gb-controls inertia-no-vcancel
 comptest us test subweapons-inertia-vcancel cv2gb-subweapons subweapons cv2gb-controls inertia-vcancel
+comptest us test subweapons-vcancel-only cv2gb-subweapons subweapons cv2gb-controls vcancel-only
 
 comptest us test subweapons-no-vcancel cv2gb-controls no-vcancel cv2gb-subweapons subweapons
 comptest us test subweapons-vcancel cv2gb-controls vcancel cv2gb-subweapons subweapons
 comptest us test subweapons-inertia-no-vcancel cv2gb-controls inertia-no-vcancel cv2gb-subweapons subweapons
 comptest us test subweapons-inertia-vcancel cv2gb-controls inertia-vcancel cv2gb-subweapons subweapons
+comptest us test subweapons-vcancel-only cv2gb-controls vcancel-only cv2gb-subweapons subweapons
 
 if [ -f "cv2gb-controls.zip" ]
 then

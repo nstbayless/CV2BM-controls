@@ -10,6 +10,10 @@ This hack adjusts Christopher Belmont's control scheme to be more like Mega Man 
 - Belmont regains control during knockback.
 - (`vcancel` patches only!) When the jump button is released, Belmont immediately starts falling again; this allows the player to make smaller hops if desired.
 - (`inertia` patches only!) When adjusting velocity in mid-air, Belmont only accelerates slowly (rather than changing direction instantaneously).
+
+Additionally, a `vcancel-only` patch is provided which makes only the `vcancel` change and no other change.
+
+If you are unsure which patch you would like, the recommended hack is `inertia-vcancel.ips`.
     
 ## Patching Instructions
 
@@ -23,6 +27,8 @@ In any case, this is purely cosmetic because a real gameboy does not actually ve
 ## Compatability with other hacks
 
 Should be compatible with the speed hack: https://www.romhacking.net/hacks/213/ (apply the speed hack first.)
+
+Also compatible with the subweapons hack: https://www.romhacking.net/hacks/7641/
 
 ## Source Code
 

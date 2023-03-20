@@ -333,33 +333,35 @@ endif
     ld a, (de)
     push af
 
-if USE_ALTBANK
-        ldai16 input_held
-        pushhl fin_set_lrspeed
-        and 3
-        jp z, entity_set_x_velocity_0
-        
-        if ALTBANK7
-            pushhl mbc_swap_bank_7
-        else
-            pushhl mbc_swap_bank_1
-        endif
-        pushhl belmont_set_hvelocity_from_input
-        jp mbc_swap_bank_6
+if VCANCEL_ONLY == 0
+    if USE_ALTBANK
+            ldai16 input_held
+            pushhl fin_set_lrspeed
+            and 3
+            jp z, entity_set_x_velocity_0
+            
+            if ALTBANK7
+                pushhl mbc_swap_bank_7
+            else
+                pushhl mbc_swap_bank_1
+            endif
+            pushhl belmont_set_hvelocity_from_input
+            jp mbc_swap_bank_6
 
-    fin_set_lrspeed:
-else
-        
-    if KGBC4EU_LAYOUT
-        call belmont_set_hvelocity_from_input_or_0
+        fin_set_lrspeed:
     else
-        call belmont_set_hvelocity_from_input
-        
-        ; check if c was changed (bit 0 will not be 1 anymore)
-        bit 0, c
-        
-        ; if c was not changed, set x velocity to 0
-        call nz, entity_set_x_velocity_0
+            
+        if KGBC4EU_LAYOUT
+            call belmont_set_hvelocity_from_input_or_0
+        else
+            call belmont_set_hvelocity_from_input
+            
+            ; check if c was changed (bit 0 will not be 1 anymore)
+            bit 0, c
+            
+            ; if c was not changed, set x velocity to 0
+            call nz, entity_set_x_velocity_0
+        endif
     endif
 endif
     
@@ -368,7 +370,15 @@ endif
     ld e, 2
     ld a, (de)
     or a
-    jr z, fin_lr_ctrl
+    
+    if VCANCEL_ONLY
+        ; vcancel-only: *always* restore previous facing.
+        nop
+        nop
+    else
+        ; only restore previous facing if whip-attacking
+        jr z, fin_lr_ctrl
+    endif
     
     ; restore previous facing
     ld h, d
