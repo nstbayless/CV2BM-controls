@@ -26,6 +26,7 @@ then
 fi
 
 mkdir "$DST"
+echo "# checksums for the patch files themselves." > patchsums.txt
 
 function getLabel() {
     A=$(sed 's/[\t ]\+/ /g' "$1" | grep -oP "(?<=$2"': equ \$).*')
@@ -97,6 +98,7 @@ function build() {
     checkmax "$BUILDNAME.lbl" end_bank7 7fff
 
     mkdir -p "$DST/$EXPORT/$BASEROM"
+    md5sum "$BUILDNAME.ips" >> patchsums.txt
     cp "$BUILDNAME.ips" "$DST/$EXPORT/$BASEROM"
 }
 
@@ -147,8 +149,8 @@ build patch kgbc4eu cv2gb-controls no-vcancel "VCANCEL: equ 0" "INERTIA: equ 0" 
 build patch kgbc4eu cv2gb-controls inertia-vcancel "VCANCEL: equ 1" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 build patch kgbc4eu cv2gb-controls inertia-no-vcancel "VCANCEL: equ 0" "INERTIA: equ 1" "SUBWEAPONS: equ 0" "CONTROL: equ 1"
 
-cp README-controls.txt "$DST/cv2gb-controls"
-cp README-subweapons.txt "$DST/cv2gb-subweapons"
+cp README-controls.txt "$DST/cv2gb-controls/README.txt"
+cp README-subweapons.txt "$DST/cv2gb-subweapons/README.txt"
 
 comptest us test subweapons-no-vcancel cv2gb-subweapons subweapons cv2gb-controls no-vcancel
 comptest us test subweapons-vcancel cv2gb-subweapons subweapons cv2gb-controls vcancel

@@ -13,7 +13,7 @@ This hack adjusts Christopher Belmont's control scheme to be more like Mega Man 
     
 ## Patching Instructions
 
-There are patches for each combination of rom (US/EU; JP; EU Konami GB Vol. 4) and for parameters selected (see "Functionality" below). Only one patch should be used.
+There are patches for each combination of rom (US/EU; JP; EU Konami GB Vol. 4) and for parameters selected (see "Functionality" above). Only one patch should be used.
 Please note that the US and EU roms are the same. You may wish to verify your rom before patching by checking a hash (see "ROM HASHES" below).
 
 Patch using FLIPS or any other IPS patcher. Please note that gameboy roms contain an internal checksum -- this

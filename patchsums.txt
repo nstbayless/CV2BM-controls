@@ -1,0 +1,18 @@
+# checksums for the patch files themselves.
+c41e3bdf7243b0eb91fd50a00d0aff5e  us-subweapons.ips
+453866b99a887ba43301ae3e14a2cfab  us-no-vcancel.ips
+8c0bbe4f3fece7590125e80589339942  us-vcancel.ips
+4099f0b6cf3641cefdf097be44a63899  us-inertia-vcancel.ips
+6868add12be42b9091bdc5104d76e562  us-inertia-no-vcancel.ips
+4daac04468a2dac0b5e17a1e531ce4a5  us-subweapons-no-vcancel.ips
+9d1609aa5d4fdfc163e4a8db74c4c299  us-subweapons-vcancel.ips
+4aa2e1e95a8ff6ab6c922497d3d36b81  us-subweapons-inertia-no-vcancel.ips
+c0723652f4a3c855db7bd32ed81b9266  us-subweapons-inertia-vcancel.ips
+66a0375b2fe3b1fb8fe59369f71e85aa  jp-vcancel.ips
+c6fa5d4e3f392ba3f03d54086f16521b  jp-no-vcancel.ips
+aae3984e9108a1aa6e1c6d9413012ebd  jp-inertia-vcancel.ips
+ef5e1fedaeed03e702ae89cb4cec3a3a  jp-inertia-no-vcancel.ips
+ea012e2b007e233ed7c7d48804e0fd48  kgbc4eu-vcancel.ips
+e12ebe6c4abea6fb83e3d5e633bd32dc  kgbc4eu-no-vcancel.ips
+4c95309bae62186e212423a05d1901c2  kgbc4eu-inertia-vcancel.ips
+981349e34957058fba57566868c2a5a7  kgbc4eu-inertia-no-vcancel.ips
